@@ -1,4 +1,4 @@
-# LearnBridge — Phase 2: Classrooms, Spaces & Sessions
+# ATLAS — Phase 2: Classrooms, Spaces & Sessions
 ## Prerequisite: Phase 1 checklist fully passing
 ## Stop when this works: A teacher can create a Space and a student can enroll and see it
 

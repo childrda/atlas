@@ -1,4 +1,4 @@
-# LearnBridge — Phase 5: Compass View (Real-Time Teacher Dashboard)
+# ATLAS — Phase 5: Compass View (Real-Time Teacher Dashboard)
 ## Prerequisite: Phase 4 checklist fully passing
 ## Stop when this works: Teacher sees student sessions update live without refreshing the page
 
@@ -28,8 +28,8 @@ In `.env`:
 ```
 BROADCAST_DRIVER=reverb
 
-REVERB_APP_ID=learnbridge
-REVERB_APP_KEY=learnbridge-key
+REVERB_APP_ID=atlas
+REVERB_APP_KEY=atlas-key
 REVERB_APP_SECRET=change-this-in-production
 REVERB_HOST=0.0.0.0
 REVERB_PORT=8080

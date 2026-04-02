@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "childrda/atlas",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "ATLAS — Augmented Teaching & Learning AI System",
+    "keywords": ["laravel", "atlas", "education", "ai"],
     "license": "MIT",
     "require": {
         "php": "^8.2",

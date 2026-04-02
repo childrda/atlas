@@ -1,4 +1,4 @@
-# LearnBridge — Phase 6: Teacher Toolkit
+# ATLAS — Phase 6: Teacher Toolkit
 ## Prerequisite: Phase 5 checklist fully passing
 ## Stop when this works: Teacher can run all 7 built-in tools and see streaming output
 
@@ -464,7 +464,7 @@ Split panel:
 ---
 ---
 
-# LearnBridge — Phase 7: Discover Library
+# ATLAS — Phase 7: Discover Library
 ## Prerequisite: Phase 6 checklist fully passing
 ## Stop when this works: Teachers can publish spaces to the library, search, and import them
 
@@ -792,7 +792,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 ---
 ---
 
-# LearnBridge — Phase 8: Docker & Deployment
+# ATLAS — Phase 8: Docker & Deployment
 ## Prerequisite: Phase 7 checklist fully passing — full app working locally
 ## Stop when this works: The entire app runs with `docker compose up`
 
@@ -1065,7 +1065,7 @@ http {
 
 Create `.env.production.example`:
 ```bash
-APP_NAME=LearnBridge
+APP_NAME=ATLAS
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://your-district-domain.org
@@ -1076,8 +1076,8 @@ APP_KEY=
 DB_CONNECTION=pgsql
 DB_HOST=db
 DB_PORT=5432
-DB_DATABASE=learnbridge
-DB_USERNAME=learnbridge
+DB_DATABASE=atlas
+DB_USERNAME=atlas
 DB_PASSWORD=CHANGE_THIS_TO_STRONG_PASSWORD
 
 REDIS_HOST=redis
@@ -1091,7 +1091,7 @@ OPENAI_MODEL=llama3.2
 QUEUE_CONNECTION=redis
 BROADCAST_DRIVER=reverb
 
-REVERB_APP_ID=learnbridge
+REVERB_APP_ID=atlas
 REVERB_APP_KEY=CHANGE_THIS_RANDOM_STRING
 REVERB_APP_SECRET=CHANGE_THIS_RANDOM_STRING
 REVERB_HOST=0.0.0.0
@@ -1110,10 +1110,10 @@ MEILISEARCH_KEY=CHANGE_THIS
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.your-district-mail.org
 MAIL_PORT=587
-MAIL_USERNAME=learnbridge@your-district.org
+MAIL_USERNAME=atlas@your-district.org
 MAIL_PASSWORD=CHANGE_THIS
-MAIL_FROM_ADDRESS=learnbridge@your-district.org
-MAIL_FROM_NAME=LearnBridge
+MAIL_FROM_ADDRESS=atlas@your-district.org
+MAIL_FROM_NAME=ATLAS
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -1137,7 +1137,7 @@ use Illuminate\Support\Facades\Hash;
 
 class CreateDistrictAdmin extends Command
 {
-    protected $signature = 'learnbridge:create-admin
+    protected $signature = 'atlas:create-admin
         {--email= : Admin email address}
         {--name= : Admin full name}
         {--district= : District name}';
@@ -1184,7 +1184,7 @@ class CreateDistrictAdmin extends Command
 #!/bin/bash
 set -e
 
-echo "=== LearnBridge First-Run Setup ==="
+echo "=== ATLAS First-Run Setup ==="
 
 echo "Generating application key..."
 docker compose exec app php artisan key:generate
@@ -1203,7 +1203,7 @@ echo "Indexing spaces for search..."
 docker compose exec app php artisan scout:import "App\\Models\\LearningSpace"
 
 echo "Creating first district admin..."
-docker compose exec app php artisan learnbridge:create-admin
+docker compose exec app php artisan atlas:create-admin
 
 echo ""
 echo "=== Setup complete ==="
@@ -1217,7 +1217,7 @@ echo "Horizon: https://your-district-domain.org/horizon (district admin only)"
 set -e
 
 DATE=$(date +%Y%m%d_%H%M)
-BACKUP_DIR="/backups/learnbridge"
+BACKUP_DIR="/backups/atlas"
 mkdir -p "$BACKUP_DIR"
 
 echo "Backing up database..."
@@ -1291,7 +1291,7 @@ Run all of these after deployment.
 
 ---
 
-## LearnBridge complete.
+## ATLAS complete.
 
 | Phase | Builds                        | Done when                                          |
 |-------|-------------------------------|----------------------------------------------------|

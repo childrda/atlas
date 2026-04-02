@@ -1,4 +1,4 @@
-# LearnBridge — Phase 3: AI & Student Chat
+# ATLAS — Phase 3: AI & Student Chat
 ## Prerequisite: Phase 2 checklist fully passing
 ## Stop when this works: A student can have a real conversation with Bridger inside a Space
 
@@ -583,7 +583,7 @@ if (app()->environment('local')) {
     Route::get('/test-llm', function () {
         $response = \OpenAI\Laravel\Facades\OpenAI::chat()->create([
             'model'    => config('openai.model'),
-            'messages' => [['role' => 'user', 'content' => 'Reply with exactly: LearnBridge LLM connected.']],
+            'messages' => [['role' => 'user', 'content' => 'Reply with exactly: ATLAS LLM connected.']],
         ]);
         return $response->choices[0]->message->content;
     })->middleware(['auth', 'role:district_admin']);
@@ -953,7 +953,7 @@ php artisan serve
 **Checklist — do not move to Phase 4 until all pass:**
 
 LLM connection:
-- [ ] Visit `/test-llm` as district_admin → returns "LearnBridge LLM connected."
+- [ ] Visit `/test-llm` as district_admin → returns "ATLAS LLM connected."
 - [ ] Change `OPENAI_BASE_URL` to Ollama and retry → same result, no code changes
 
 Student chat:
