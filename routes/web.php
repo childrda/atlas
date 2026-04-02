@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SocialiteController;
+use App\Http\Controllers\Student\MessageController;
+use App\Http\Controllers\Student\SessionController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentJoinController;
 use App\Http\Controllers\Student\StudentSpaceController;
@@ -9,6 +11,7 @@ use App\Http\Controllers\Teacher\ClassroomController;
 use App\Http\Controllers\Teacher\SpaceController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
+use OpenAI\Laravel\Facades\OpenAI;
 
 // Auth
 Route::middleware('guest')->group(function () {
@@ -59,8 +62,23 @@ Route::middleware(['auth', 'role:student'])
         Route::post('join', [StudentJoinController::class, 'join'])->name('join');
         Route::get('spaces', [StudentSpaceController::class, 'index'])->name('spaces.index');
         Route::get('spaces/{space}', [StudentSpaceController::class, 'show'])->name('spaces.show');
+        Route::post('spaces/{space}/sessions', [SessionController::class, 'start'])->name('sessions.start');
+        Route::get('sessions/{session}', [SessionController::class, 'show'])->name('sessions.show');
+        Route::post('sessions/{session}/end', [SessionController::class, 'end'])->name('sessions.end');
+        Route::post('sessions/{session}/messages', [MessageController::class, 'store'])->name('messages.store');
     });
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+if (app()->environment('local')) {
+    Route::get('/test-llm', function () {
+        $response = OpenAI::chat()->create([
+            'model' => config('openai.model'),
+            'messages' => [['role' => 'user', 'content' => 'Reply with exactly: ATLAS LLM connected.']],
+        ]);
+
+        return $response->choices[0]->message->content;
+    })->middleware(['auth', 'role:district_admin']);
+}

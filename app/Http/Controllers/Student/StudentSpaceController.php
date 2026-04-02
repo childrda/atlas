@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Student\Concerns\AuthorizesStudentLearningSpace;
 use App\Models\LearningSpace;
-use App\Models\User;
+use App\Models\StudentSession;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StudentSpaceController extends Controller
 {
+    use AuthorizesStudentLearningSpace;
+
     public function index(): Response
     {
         $spaces = LearningSpace::withoutGlobalScope('district')
@@ -26,23 +29,16 @@ class StudentSpaceController extends Controller
 
     public function show(Request $request, LearningSpace $space): Response
     {
-        $this->authorizeStudentSpace($request->user(), $space);
+        $this->authorizeStudentLearningSpace($request->user(), $space);
+
+        $activeSession = StudentSession::where('student_id', $request->user()->id)
+            ->where('space_id', $space->id)
+            ->where('status', 'active')
+            ->first();
 
         return Inertia::render('Student/Spaces/Show', [
             'space' => $space->load('teacher:id,name'),
+            'activeSession' => $activeSession,
         ]);
-    }
-
-    protected function authorizeStudentSpace(User $user, LearningSpace $space): void
-    {
-        abort_unless($space->district_id === $user->district_id, 403);
-        abort_unless($space->is_published && ! $space->is_archived, 403);
-
-        if ($space->classroom_id) {
-            abort_unless(
-                $space->classroom->students()->where('users.id', $user->id)->exists(),
-                403
-            );
-        }
     }
 }

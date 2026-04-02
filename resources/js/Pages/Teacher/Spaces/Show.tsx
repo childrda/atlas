@@ -1,12 +1,12 @@
 import TeacherLayout from '@/Layouts/TeacherLayout';
-import type { LearningSpace, StudentSession } from '@/types/models';
+import type { LearningSpace, TeacherSpaceSessionRow } from '@/types/models';
 import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function SpacesShow() {
     const { space, recentSessions, sessionCount } = usePage().props as {
         space: LearningSpace;
-        recentSessions: StudentSession[];
+        recentSessions: TeacherSpaceSessionRow[];
         sessionCount: number;
     };
     const [copied, setCopied] = useState(false);

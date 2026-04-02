@@ -51,10 +51,25 @@ export interface LearningSpace {
     teacher?: { id: string; name: string };
 }
 
-export interface StudentSession {
+/** Recent session row on teacher space detail */
+export interface TeacherSpaceSessionRow {
     id: string;
     status: string;
     message_count: number;
     started_at: string;
     student?: { id: string; name: string };
+}
+
+export interface Message {
+    id: string;
+    role: 'user' | 'assistant' | 'teacher_inject';
+    content: string;
+    created_at: string;
+}
+
+export interface StudentSession {
+    id: string;
+    status: string;
+    message_count: number;
+    space: LearningSpace;
 }

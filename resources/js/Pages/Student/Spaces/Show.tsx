@@ -1,9 +1,16 @@
 import StudentLayout from '@/Layouts/StudentLayout';
 import type { LearningSpace } from '@/types/models';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 
 export default function StudentSpacesShow() {
-    const { space } = usePage().props as { space: LearningSpace };
+    const { space, activeSession } = usePage().props as {
+        space: LearningSpace;
+        activeSession: { id: string } | null;
+    };
+
+    function startOrContinue() {
+        router.post(`/learn/spaces/${space.id}/sessions`);
+    }
 
     return (
         <StudentLayout>
@@ -26,15 +33,12 @@ export default function StudentSpacesShow() {
                 </div>
                 <button
                     type="button"
-                    disabled
-                    className="mt-10 w-full rounded-md py-3 text-sm font-medium text-white opacity-60"
+                    onClick={startOrContinue}
+                    className="mt-10 w-full rounded-md py-3 text-sm font-medium text-white hover:opacity-95"
                     style={{ backgroundColor: '#1E3A5F' }}
                 >
-                    Start session (Phase 3)
+                    {activeSession ? 'Continue session' : 'Start session'}
                 </button>
-                <p className="mt-4 text-center text-xs text-gray-500">
-                    Sessions will be powered by Bridger in a later phase.
-                </p>
             </div>
         </StudentLayout>
     );
