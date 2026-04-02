@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Classroom;
 use App\Models\District;
+use App\Models\LearningSpace;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -60,5 +62,40 @@ class TestDataSeeder extends Seeder
             ]
         );
         $student->assignRole('student');
+
+        $classroom = Classroom::withoutGlobalScopes()->firstOrCreate(
+            [
+                'teacher_id' => $teacher->id,
+                'name' => 'Grade 5 Science',
+            ],
+            [
+                'district_id' => $district->id,
+                'school_id' => $school->id,
+                'subject' => 'Science',
+                'grade_level' => '5',
+            ]
+        );
+
+        if (! $classroom->students()->where('users.id', $student->id)->exists()) {
+            $classroom->students()->attach($student->id, ['enrolled_at' => now()]);
+        }
+
+        LearningSpace::withoutGlobalScopes()->firstOrCreate(
+            [
+                'teacher_id' => $teacher->id,
+                'title' => 'The Water Cycle',
+            ],
+            [
+                'district_id' => $district->id,
+                'classroom_id' => $classroom->id,
+                'description' => 'Explore how water moves through the environment.',
+                'subject' => 'Science',
+                'grade_level' => '5',
+                'system_prompt' => 'You are Bridger, a friendly science tutor. Help the student understand the water cycle using questions and examples. Do not just give answers — guide them to discover.',
+                'goals' => ['Explain evaporation', 'Explain condensation', 'Describe precipitation'],
+                'bridger_tone' => 'encouraging',
+                'is_published' => true,
+            ]
+        );
     }
 }

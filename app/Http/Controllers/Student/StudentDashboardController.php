@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\LearningSpace;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -10,8 +11,17 @@ class StudentDashboardController extends Controller
 {
     public function index(): Response
     {
+        $enrolledSpaces = LearningSpace::withoutGlobalScope('district')
+            ->where('learning_spaces.district_id', auth()->user()->district_id)
+            ->where('is_published', true)
+            ->where('is_archived', false)
+            ->whereHas('classroom.students', fn ($q) => $q->where('users.id', auth()->id()))
+            ->with('teacher:id,name')
+            ->get();
+
         return Inertia::render('Student/Dashboard', [
             'user' => auth()->user()->load('school', 'district'),
+            'enrolledSpaces' => $enrolledSpaces,
         ]);
     }
 }
