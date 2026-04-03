@@ -38,8 +38,9 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 16. [Production hardening checklist](#production-hardening-checklist)
 17. [Reference: `.env` variables](#reference-env-variables)
 18. [Demo accounts (after seeding)](#demo-accounts-after-seeding)
-19. [Implementation phases](#implementation-phases)
-20. [License](#license)
+19. [Implementation phases (1-7)](#implementation-phases-1-7)
+20. [Verifying phases (1-7)](#verifying-phases-1-7)
+21. [License](#license)
 
 ---
 
@@ -235,6 +236,8 @@ php artisan migrate --force
 # Optional demo users/spaces:
 php artisan db:seed --force
 ```
+
+**Automated tests (sanity check):** `php artisan test` uses SQLite in memory (`phpunit.xml`). A valid `APP_KEY` is set there for CI/local runs; some environments warn if `.env` is missing—tests should still pass.
 
 Create storage link and fix permissions (critical on Linux):
 
@@ -667,6 +670,7 @@ Use this as a baseline before exposing the app to the internet.
 - [ ] Demo seeders **not** run on production, or change all default passwords
 - [ ] **Horizon** (`/horizon`) only for `district_admin`; confirm non-admins get 403
 - [ ] **Reverb** running under process manager if Compass live updates are required; strong `REVERB_APP_SECRET`; WebSockets served with **WSS** behind HTTPS
+- [ ] **Discover / Scout:** if `SCOUT_DRIVER=meilisearch`, run Meilisearch on a private network, set a strong `MEILISEARCH_KEY`, and do not expose port **7700** to the public internet without a reverse proxy and TLS
 
 ### Transport and cookies
 
@@ -792,15 +796,40 @@ After `php artisan db:seed` (includes `TestDataSeeder`):
 
 ---
 
-## Implementation phases
+## Implementation phases (1-7)
 
-See the `/phases` directory for staged build instructions and feature checklists.
+**Status:** Phases **1 through 7** are **implemented in this repository** (application code and docs through Discover). **Phase 8** (Docker Compose, multi-container deployment as described in `phases/Phases6_7_8.md`) is **not** implemented here yet (no `docker-compose.yml` at the project root).
 
-**Phase 5 (Compass View + Reverb)** is implemented in this repo: broadcasting events, `routes/channels.php`, teacher routes under `/teach/compass`, and the Echo bootstrap in `resources/js/bootstrap.ts`. Use the section [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5) above to enable it in each environment.
+Detailed step-by-step instructions and **manual acceptance checklists** live under **`/phases`**:
 
-**Phase 6 (Teacher Toolkit)** is implemented: `/teach/toolkit` lists **seven built-in AI tools** (lesson planner, rubric builder, assessment generator, differentiation helper, parent comms drafter, feedback generator, IEP accommodation suggester). Each tool uses a schema-driven form and **SSE streaming** output (same pattern as student chat). Run migrations and seed **`BuiltInToolsSeeder`** (included in `DatabaseSeeder`, or `php artisan db:seed --class=BuiltInToolsSeeder`) so tools exist. Requires a working **LLM** (`OPENAI_*` in `.env`) like the student chat feature.
+| Phase | Doc (primary) | What it covers |
+|-------|----------------|----------------|
+| **1** | `phases/Phase1_Scaffold_Auth.md` | Laravel + Inertia scaffold, districts/schools/users, Spatie roles, email + Google OAuth login, teacher/student portals entry, UUID users |
+| **2** | `phases/Phase2_Classrooms_Spaces.md` | Classrooms, roster by email, learning spaces, join codes, student dashboard and join flows, global `district` scope on tenant models |
+| **3** | `phases/Phase3_AI_Chat.md` | OpenAI-compatible client, student sessions, SSE streaming chat, safety filter, message limits, privacy redaction, `/test-llm` (local admin check) |
+| **4** | `phases/Phase4_Queues_Alerts.md` | Redis queues, **Laravel Horizon**, safety alert jobs + email, encrypted alert payload, session summary jobs, `/teach/alerts` |
+| **5** | `phases/Phase5_Compass_View.md` | **Laravel Reverb**, broadcasting, live **Compass View** (`/teach/compass`), session detail, inject/end session, channel auth in `routes/channels.php` |
+| **6–7** | `phases/Phases6_7_8.md` | **Teacher Toolkit** (`/teach/toolkit`, seven built-in tools, SSE tool runs), **Discover** (library items, Scout, import, ratings, district approve) |
 
-**Phase 7 (Discover library)** is implemented: **`space_library_items`** table, **`SpaceLibraryItem`** model, **Laravel Scout** on **`LearningSpace`**, teacher routes **`/teach/discover`** (debounced search, filters, default sort by popularity, import, ratings, district-admin approve + badge), publish flow with **Share to Discover** on the space detail page, and sidebar **Discover**. Use [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7) for Meilisearch, `scout:import`, and env vars.
+**Phase 5 (Compass View + Reverb)** — enable with [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5): `BROADCAST_CONNECTION=reverb`, Reverb process, `npm run build` with `VITE_REVERB_*` set.
+
+**Phase 6 (Teacher Toolkit)** — `/teach/toolkit`: schema-driven forms and **SSE streaming** for seven tools. Seed **`BuiltInToolsSeeder`** (via `DatabaseSeeder` or `php artisan db:seed --class=BuiltInToolsSeeder`). Requires **`OPENAI_*`** (or compatible endpoint).
+
+**Phase 7 (Discover library)** — **`space_library_items`**, **`SpaceLibraryItem`**, **Laravel Scout** on **`LearningSpace`**, **`/teach/discover`** (debounced search, subject/grade/sort filters, default sort by downloads, **Add to my spaces** import, ratings, **District approved** badge, **district_admin** approve action). Publish from space detail: **Share to Discover**, tags, grade band, listing description. See [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7) for Meilisearch and `scout:import`.
+
+---
+
+## Verifying phases (1-7)
+
+Implementation is done; **full “phase complete” verification** means working through the **checkbox lists** at the end of each file in **`/phases`** (browser flows, often Horizon, Reverb + two browsers, LLM, and—with `SCOUT_DRIVER=meilisearch`—Meilisearch).
+
+**Quick automated check:** from the project root, run:
+
+```bash
+php artisan test
+```
+
+**Local dev stack** (typical): `php artisan serve`, `npm run dev`, `php artisan horizon` when testing queues, `php artisan reverb:start` when testing Compass live updates, Redis if using `QUEUE_CONNECTION=redis`.
 
 ---
 
