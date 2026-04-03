@@ -52,7 +52,7 @@ class SafetyFilter
         return null;
     }
 
-    public function safeBridgerResponse(string $category): string
+    public function safeAtlaasResponse(string $category): string
     {
         return match ($category) {
             'self_harm', 'abuse_disclosure' => 'It sounds like you might be going through something really difficult right now. '.

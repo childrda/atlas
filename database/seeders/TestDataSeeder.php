@@ -91,9 +91,9 @@ class TestDataSeeder extends Seeder
                 'description' => 'Explore how water moves through the environment.',
                 'subject' => 'Science',
                 'grade_level' => '5',
-                'system_prompt' => 'You are Bridger, a friendly science tutor. Help the student understand the water cycle using questions and examples. Do not just give answers — guide them to discover.',
+                'system_prompt' => 'You are ATLAAS, a friendly science tutor. Help the student understand the water cycle using questions and examples. Do not just give answers — guide them to discover.',
                 'goals' => ['Explain evaporation', 'Explain condensation', 'Describe precipitation'],
-                'bridger_tone' => 'encouraging',
+                'atlaas_tone' => 'encouraging',
                 'is_published' => true,
             ]
         );

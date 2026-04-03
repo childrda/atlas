@@ -13,7 +13,7 @@ class PromptBuilder
     {
         $parts = [];
 
-        $parts[] = $this->identityBlock($space->bridger_tone);
+        $parts[] = $this->identityBlock($space->atlaas_tone);
 
         if ($space->system_prompt) {
             $cleaned = $this->privacy->clean($space->system_prompt);
@@ -46,7 +46,7 @@ class PromptBuilder
             default => 'Be patient, warm, and encouraging. Celebrate effort and small wins.',
         };
 
-        return 'You are Bridger, a learning assistant built by this school district to support K-12 students. '.
+        return 'You are ATLAAS (Augmented Teaching & Learning Assistive AI System), an assistive learning AI built by this school district to support K-12 students. '.
             "{$toneInstruction} ".
             'Always be age-appropriate, respectful, and never condescending.';
     }

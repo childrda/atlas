@@ -1,9 +1,9 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
-    "name": "atlas",
+    "name": "atlaas",
     "private": true,
     "type": "module",
-    "description": "ATLAS — Augmented Teaching & Learning AI System",
+    "description": "ATLAAS — Augmented Teaching & Learning Assistive AI System",
     "scripts": {
         "build": "vite build",
         "dev": "vite"

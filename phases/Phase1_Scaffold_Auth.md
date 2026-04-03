@@ -1,6 +1,6 @@
-# ATLAS — Phase 1: Scaffold & Auth
+# ATLAAS — Phase 1: Scaffold & Auth
 
-**Augmented Teaching & Learning AI System**
+**Augmented Teaching & Learning Assistive AI System**
 
 ## Stop when this works: You can log in as a teacher and a student and see different dashboards
 
@@ -21,8 +21,8 @@
 ## Step 1 — Create the project
 
 ```bash
-composer create-project laravel/laravel atlas
-cd atlas
+composer create-project laravel/laravel atlaas
+cd atlaas
 
 composer require \
   inertiajs/inertia-laravel \
@@ -64,13 +64,13 @@ In `.env`:
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
-DB_DATABASE=atlas
+DB_DATABASE=atlaas
 DB_USERNAME=postgres
 DB_PASSWORD=secret
 ```
 
 ```bash
-createdb atlas
+createdb atlaas
 ```
 
 ---
@@ -78,7 +78,7 @@ createdb atlas
 ## Step 3 — Base Model and UUID trait
 
 Before writing any other model, create these two files.
-Every ATLAS model uses one of these patterns for UUIDs.
+Every ATLAAS model uses one of these patterns for UUIDs.
 
 ### `app/Models/BaseModel.php`
 All models except User extend this:
@@ -856,7 +856,7 @@ export default function StudentDashboard() {
 ```
 
 ### `resources/js/Pages/Auth/Login.tsx`
-- ATLAS wordmark centered
+- ATLAAS wordmark centered
 - Email + password fields (email repopulates on failure via `old` prop)
 - "Sign in" submit button
 - Divider

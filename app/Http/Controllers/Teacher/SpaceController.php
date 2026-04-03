@@ -48,7 +48,7 @@ class SpaceController extends Controller
             'system_prompt' => 'nullable|string|max:4000',
             'goals' => 'nullable|array|max:5',
             'goals.*' => 'string|max:200',
-            'bridger_tone' => 'in:encouraging,socratic,direct,playful',
+            'atlaas_tone' => 'in:encouraging,socratic,direct,playful',
             'language' => 'string|max:10',
             'max_messages' => 'nullable|integer|min:5|max:500',
         ]);
@@ -107,7 +107,7 @@ class SpaceController extends Controller
             'system_prompt' => 'nullable|string|max:4000',
             'goals' => 'nullable|array|max:5',
             'goals.*' => 'string|max:200',
-            'bridger_tone' => 'in:encouraging,socratic,direct,playful',
+            'atlaas_tone' => 'in:encouraging,socratic,direct,playful',
             'language' => 'string|max:10',
             'max_messages' => 'nullable|integer|min:5|max:500',
         ]));

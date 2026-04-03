@@ -37,15 +37,41 @@ return [
 
     'mailers' => [
 
+        /*
+        |--------------------------------------------------------------------------
+        | SMTP encryption (TLS vs SSL)
+        |--------------------------------------------------------------------------
+        |
+        | Set either MAIL_SCHEME or MAIL_ENCRYPTION (MAIL_SCHEME wins if set).
+        |
+        |   MAIL_SCHEME=smtp   + port 587 → STARTTLS (TLS)
+        |   MAIL_SCHEME=smtps  + port 465 → implicit SSL
+        |
+        |   MAIL_ENCRYPTION=tls or starttls → same as scheme smtp (use port 587)
+        |   MAIL_ENCRYPTION=ssl or smtps    → same as scheme smtps (use port 465)
+        |
+        | If both are empty, Laravel picks smtps on port 465, otherwise smtp.
+        |
+        | MAIL_USERNAME / MAIL_PASSWORD: use the mailbox address and app password
+        | (Gmail, Google Workspace, Microsoft 365, etc.) when the provider requires it.
+        |
+        */
+
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            'scheme' => (($scheme = env('MAIL_SCHEME')) !== null && $scheme !== '')
+                ? $scheme
+                : match (strtolower((string) env('MAIL_ENCRYPTION', ''))) {
+                    'ssl', 'smtps' => 'smtps',
+                    'tls', 'starttls' => 'smtp',
+                    default => null,
+                },
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            'timeout' => (($t = env('MAIL_TIMEOUT')) !== null && $t !== '') ? (int) $t : null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
@@ -112,7 +138,7 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'ATLAS')),
+        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'ATLAAS')),
     ],
 
 ];

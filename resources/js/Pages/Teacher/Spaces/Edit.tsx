@@ -29,7 +29,7 @@ export default function SpacesEdit() {
         grade_level: space.grade_level ?? '',
         classroom_id: space.classroom_id ?? '',
         system_prompt: space.system_prompt ?? '',
-        bridger_tone: space.bridger_tone,
+        atlaas_tone: space.atlaas_tone,
         language: space.language ?? 'en',
         max_messages: space.max_messages != null ? String(space.max_messages) : '',
     });
@@ -48,7 +48,7 @@ export default function SpacesEdit() {
                 classroom_id: form.data.classroom_id || null,
                 system_prompt: form.data.system_prompt || null,
                 goals,
-                bridger_tone: form.data.bridger_tone,
+                atlaas_tone: form.data.atlaas_tone,
                 language: form.data.language,
                 max_messages:
                     form.data.max_messages === '' ? null : Number(form.data.max_messages),
@@ -119,7 +119,7 @@ export default function SpacesEdit() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
-                            Instructions for Bridger
+                            Instructions for ATLAAS
                         </label>
                         <textarea
                             rows={5}
@@ -159,10 +159,10 @@ export default function SpacesEdit() {
                                 <label key={t.value} className="flex items-center gap-2 text-sm">
                                     <input
                                         type="radio"
-                                        name="bridger_tone"
+                                        name="atlaas_tone"
                                         value={t.value}
-                                        checked={form.data.bridger_tone === t.value}
-                                        onChange={() => form.setData('bridger_tone', t.value)}
+                                        checked={form.data.atlaas_tone === t.value}
+                                        onChange={() => form.setData('atlaas_tone', t.value)}
                                     />
                                     {t.label}
                                 </label>

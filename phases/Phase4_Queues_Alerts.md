@@ -1,4 +1,4 @@
-# ATLAS — Phase 4: Queues, Safety Alerts & Session Summaries
+﻿# ATLAAS — Phase 4: Queues, Safety Alerts & Session Summaries
 ## Prerequisite: Phase 3 checklist fully passing
 ## Stop when this works: Safety alerts are stored in the DB and session summaries are generated on session end
 
@@ -263,7 +263,7 @@ class SafetyAlertMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[ATLAS] Safety Alert — ' . $this->alert->student->name,
+            subject: '[ATLAAS] Safety Alert — ' . $this->alert->student->name,
         );
     }
 
@@ -279,7 +279,7 @@ class SafetyAlertMail extends Mailable
 <!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; max-width: 600px; margin: 40px auto; color: #333;">
-    <h2 style="color: #1E3A5F;">ATLAS Safety Alert</h2>
+    <h2 style="color: #1E3A5F;">ATLAAS Safety Alert</h2>
 
     <p>A safety concern was detected in one of your Learning Spaces.</p>
 
@@ -309,7 +309,7 @@ class SafetyAlertMail extends Mailable
     <p style="margin-top: 24px;">
         <a href="{{ config('app.url') }}/teach/alerts"
            style="background: #1E3A5F; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
-            Review this alert in ATLAS
+            Review this alert in ATLAAS
         </a>
     </p>
 
@@ -363,7 +363,7 @@ class GenerateSessionSummary implements ShouldQueue
             ->whereIn('role', ['user', 'assistant'])
             ->orderBy('created_at')
             ->get()
-            ->map(fn($m) => ($m->role === 'user' ? 'Student' : 'Bridger') . ': ' . $m->content)
+            ->map(fn($m) => ($m->role === 'user' ? 'Student' : 'ATLAAS') . ': ' . $m->content)
             ->join("\n\n");
 
         // Student-facing: encouraging, second-person
@@ -592,7 +592,7 @@ Horizon:
 - [ ] Horizon shows queues: critical, high, default, low
 
 Safety alerts:
-- [ ] Student types "I want to hurt myself" → Bridger responds with safe message
+- [ ] Student types "I want to hurt myself" → ATLAAS responds with safe message
 - [ ] A job appears in Horizon's "critical" queue almost immediately
 - [ ] After job processes: `safety_alerts` table has a new record with `status = open`
 - [ ] `trigger_content` column is encrypted (not plaintext in DB)

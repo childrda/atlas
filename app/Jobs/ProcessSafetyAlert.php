@@ -2,20 +2,24 @@
 
 namespace App\Jobs;
 
+use App\Mail\SafetyAlertMail;
+use App\Models\SafetyAlert;
 use App\Models\StudentSession;
 use App\Services\AI\FlagResult;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
-/**
- * Phase 3 stub — Phase 4 persists SafetyAlert records and notifies teachers.
- */
-class ProcessSafetyAlert
+class ProcessSafetyAlert implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public string $queue = 'critical';
+
+    public int $tries = 3;
 
     public function __construct(
         public StudentSession $session,
@@ -25,10 +29,26 @@ class ProcessSafetyAlert
 
     public function handle(): void
     {
-        Log::warning('Safety alert (Phase 3 stub)', [
+        $this->session->loadMissing('space.teacher');
+
+        $space = $this->session->space;
+        $teacher = $space->teacher;
+
+        $alert = SafetyAlert::create([
+            'district_id' => $this->session->district_id,
+            'school_id' => $teacher->school_id,
             'session_id' => $this->session->id,
-            'category' => $this->flag->category,
+            'student_id' => $this->session->student_id,
+            'teacher_id' => $space->teacher_id,
             'severity' => $this->flag->severity,
+            'category' => $this->flag->category,
+            'trigger_content' => $this->triggerContent,
+            'status' => 'open',
         ]);
+
+        if ($this->flag->severity === 'critical') {
+            Mail::to($teacher->email)
+                ->send(new SafetyAlertMail($alert->load(['student', 'session.space'])));
+        }
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Student\SessionController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentJoinController;
 use App\Http\Controllers\Student\StudentSpaceController;
+use App\Http\Controllers\Teacher\AlertController;
 use App\Http\Controllers\Teacher\ClassroomController;
 use App\Http\Controllers\Teacher\SpaceController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
@@ -32,6 +33,9 @@ Route::middleware(['auth', 'role:teacher,school_admin,district_admin'])
     ->name('teacher.')
     ->group(function () {
         Route::get('/', [TeacherDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
+        Route::patch('alerts/{alert}', [AlertController::class, 'update'])->name('alerts.update');
 
         Route::get('classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
         Route::post('classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');
@@ -76,7 +80,7 @@ if (app()->environment('local')) {
     Route::get('/test-llm', function () {
         $response = OpenAI::chat()->create([
             'model' => config('openai.model'),
-            'messages' => [['role' => 'user', 'content' => 'Reply with exactly: ATLAS LLM connected.']],
+            'messages' => [['role' => 'user', 'content' => 'Reply with exactly: ATLAAS LLM connected.']],
         ]);
 
         return $response->choices[0]->message->content;

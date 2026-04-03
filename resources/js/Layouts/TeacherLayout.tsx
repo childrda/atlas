@@ -1,12 +1,30 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, LayoutDashboard, Layers } from 'lucide-react';
+import { Bell, BookOpen, LayoutDashboard, Layers } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { User } from '@/types/models';
 
-const nav = [
+type NavItem = {
+    label: string;
+    href: string;
+    prefix: string;
+    exact: boolean;
+    icon: 'dash' | 'layers' | 'book' | 'bell' | null;
+    soon?: boolean;
+    badgeKey?: 'alerts';
+};
+
+const nav: NavItem[] = [
     { label: 'Dashboard', href: '/teach', prefix: '/teach', exact: true, icon: 'dash' as const },
     { label: 'My Spaces', href: '/teach/spaces', prefix: '/teach/spaces', exact: false, icon: 'layers' as const },
     { label: 'Classrooms', href: '/teach/classrooms', prefix: '/teach/classrooms', exact: false, icon: 'book' as const },
+    {
+        label: 'Alerts',
+        href: '/teach/alerts',
+        prefix: '/teach/alerts',
+        exact: false,
+        icon: 'bell' as const,
+        badgeKey: 'alerts' as const,
+    },
     { label: 'Compass View', href: '#', prefix: '', exact: false, soon: true, icon: null },
     { label: 'Toolkit', href: '#', prefix: '', exact: false, soon: true, icon: null },
     { label: 'Discover', href: '#', prefix: '', exact: false, soon: true, icon: null },
@@ -22,9 +40,13 @@ function pathActive(url: string, prefix: string, exact: boolean): boolean {
 
 export default function TeacherLayout({ children }: { children: ReactNode }) {
     const page = usePage();
-    const { auth } = page.props as { auth: { user: User | null } };
+    const { auth, alerts } = page.props as {
+        auth: { user: User | null };
+        alerts?: { openCount: number };
+    };
     const url = page.url;
     const user = auth.user!;
+    const openAlertCount = alerts?.openCount ?? 0;
 
     return (
         <div className="flex min-h-screen bg-gray-50">
@@ -41,6 +63,8 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
                             !item.soon && item.prefix
                                 ? pathActive(url, item.prefix, item.exact)
                                 : false;
+                        const showAlertBadge =
+                            item.badgeKey === 'alerts' && openAlertCount > 0;
                         return (
                             <Link
                                 key={item.label}
@@ -61,9 +85,15 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
                                 )}
                                 {item.icon === 'layers' && <Layers className="h-4 w-4 shrink-0 opacity-80" />}
                                 {item.icon === 'book' && <BookOpen className="h-4 w-4 shrink-0 opacity-80" />}
-                                <span>{item.label}</span>
+                                {item.icon === 'bell' && <Bell className="h-4 w-4 shrink-0 opacity-80" />}
+                                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                {showAlertBadge && (
+                                    <span className="shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                                        {openAlertCount > 99 ? '99+' : openAlertCount}
+                                    </span>
+                                )}
                                 {item.soon && (
-                                    <span className="ml-auto text-[10px] uppercase tracking-wide text-white/40">
+                                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-white/40">
                                         soon
                                     </span>
                                 )}

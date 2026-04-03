@@ -1,17 +1,19 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "childrda/atlas",
+    "name": "childrda/atlaas",
     "type": "project",
-    "description": "ATLAS — Augmented Teaching & Learning AI System",
-    "keywords": ["laravel", "atlas", "education", "ai"],
+    "description": "ATLAAS — Augmented Teaching & Learning Assistive AI System",
+    "keywords": ["laravel", "atlaas", "education", "ai"],
     "license": "MIT",
     "require": {
         "php": "^8.2",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/framework": "^12.0",
+        "laravel/horizon": "^5.45",
         "laravel/socialite": "^5.26",
         "laravel/tinker": "^2.10.1",
         "openai-php/laravel": "^0.19.1",
+        "predis/predis": "^3.4",
         "spatie/laravel-permission": "^6.25"
     },
     "require-dev": {

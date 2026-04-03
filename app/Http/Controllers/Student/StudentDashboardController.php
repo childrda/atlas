@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningSpace;
+use App\Models\StudentSession;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,9 +20,18 @@ class StudentDashboardController extends Controller
             ->with('teacher:id,name')
             ->get();
 
+        $completedSessions = StudentSession::where('student_id', auth()->id())
+            ->where('status', 'completed')
+            ->whereNotNull('student_summary')
+            ->with('space:id,title')
+            ->latest('ended_at')
+            ->limit(5)
+            ->get(['id', 'space_id', 'student_summary', 'ended_at', 'message_count']);
+
         return Inertia::render('Student/Dashboard', [
             'user' => auth()->user()->load('school', 'district'),
             'enrolledSpaces' => $enrolledSpaces,
+            'completedSessions' => $completedSessions,
         ]);
     }
 }

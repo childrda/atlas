@@ -1,4 +1,4 @@
-# ATLAS — Phase 2: Classrooms, Spaces & Sessions
+﻿# ATLAAS — Phase 2: Classrooms, Spaces & Sessions
 ## Prerequisite: Phase 1 checklist fully passing
 ## Stop when this works: A teacher can create a Space and a student can enroll and see it
 
@@ -88,7 +88,7 @@ Schema::create('learning_spaces', function (Blueprint $table) {
     $table->jsonb('goals')->default('[]');
     $table->jsonb('restrictions')->default('{}');
     $table->jsonb('allowed_tools')->default('[]');
-    $table->string('bridger_tone')->default('encouraging'); // encouraging|socratic|direct|playful
+    $table->string('atlaas_tone')->default('encouraging'); // encouraging|socratic|direct|playful
     $table->string('language', 10)->default('en');
     $table->integer('max_messages')->nullable();
     $table->boolean('require_teacher_present')->default(false);
@@ -227,7 +227,7 @@ class LearningSpace extends BaseModel
     protected $fillable = [
         'district_id', 'teacher_id', 'classroom_id', 'title', 'description',
         'subject', 'grade_level', 'cover_image', 'system_prompt', 'goals',
-        'restrictions', 'allowed_tools', 'bridger_tone', 'language',
+        'restrictions', 'allowed_tools', 'atlaas_tone', 'language',
         'max_messages', 'require_teacher_present', 'allow_session_restart',
         'is_published', 'is_public', 'is_archived', 'join_code', 'opens_at', 'closes_at',
     ];
@@ -606,7 +606,7 @@ class SpaceController extends Controller
             'system_prompt' => 'nullable|string|max:4000',
             'goals'         => 'nullable|array|max:5',
             'goals.*'       => 'string|max:200',
-            'bridger_tone'  => 'in:encouraging,socratic,direct,playful',
+            'atlaas_tone'  => 'in:encouraging,socratic,direct,playful',
             'language'      => 'string|max:10',
             'max_messages'  => 'nullable|integer|min:5|max:500',
         ]);
@@ -661,7 +661,7 @@ class SpaceController extends Controller
             'system_prompt' => 'nullable|string|max:4000',
             'goals'         => 'nullable|array|max:5',
             'goals.*'       => 'string|max:200',
-            'bridger_tone'  => 'in:encouraging,socratic,direct,playful',
+            'atlaas_tone'  => 'in:encouraging,socratic,direct,playful',
             'language'      => 'string|max:10',
             'max_messages'  => 'nullable|integer|min:5|max:500',
         ]));
@@ -874,9 +874,9 @@ LearningSpace::create([
     'description'   => 'Explore how water moves through the environment.',
     'subject'       => 'Science',
     'grade_level'   => '5',
-    'system_prompt' => 'You are Bridger, a friendly science tutor. Help the student understand the water cycle using questions and examples. Do not just give answers — guide them to discover.',
+    'system_prompt' => 'You are ATLAAS, a friendly science tutor. Help the student understand the water cycle using questions and examples. Do not just give answers — guide them to discover.',
     'goals'         => ['Explain evaporation', 'Explain condensation', 'Describe precipitation'],
-    'bridger_tone'  => 'encouraging',
+    'atlaas_tone'  => 'encouraging',
     'is_published'  => true,
 ]);
 ```
@@ -907,7 +907,7 @@ export interface LearningSpace {
     subject: string | null;
     grade_level: string | null;
     join_code: string;
-    bridger_tone: string;
+    atlaas_tone: string;
     is_published: boolean;
     is_archived: boolean;
     goals: string[];
@@ -936,7 +936,7 @@ export interface LearningSpace {
 Single-page form:
 - Title, description, subject, grade level
 - Classroom assignment dropdown
-- "Instructions for Bridger" textarea (system prompt)
+- "Instructions for ATLAAS" textarea (system prompt)
 - Goals: up to 5 text inputs with add/remove
 - Tone: radio group (Encouraging / Socratic / Direct / Playful)
 - Max messages: optional number input
@@ -957,7 +957,7 @@ Single-page form:
 **`Student/Spaces/Show.tsx`**
 - Space title, description, goals list
 - "Start Session" button (Phase 3 will make this functional)
-- "Session will be powered by Bridger" note
+- "Session will be powered by ATLAAS" note
 
 ---
 

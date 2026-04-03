@@ -52,7 +52,7 @@ return [
     | Default chat model
     |--------------------------------------------------------------------------
     |
-    | Used by Bridger / LLMService. Override with OPENAI_MODEL in .env.
+    | Used by ATLAAS (LLMService). Override with OPENAI_MODEL in .env.
     |
     */
 

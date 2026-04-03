@@ -1,6 +1,6 @@
-import { BridgerAvatar } from '@/Components/Bridger/BridgerAvatar';
-import { ChatBubble } from '@/Components/Bridger/ChatBubble';
-import { ThinkingIndicator } from '@/Components/Bridger/ThinkingIndicator';
+import { AtlaasAvatar } from '@/Components/Atlaas/AtlaasAvatar';
+import { ChatBubble } from '@/Components/Atlaas/ChatBubble';
+import { ThinkingIndicator } from '@/Components/Atlaas/ThinkingIndicator';
 import type { Message, StudentSession } from '@/types/models';
 import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
@@ -183,10 +183,10 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
         <div className="flex h-screen flex-col bg-white">
             <header className="flex items-center justify-between border-b border-gray-100 px-6 py-3">
                 <div className="flex items-center gap-3">
-                    <BridgerAvatar state={isStreaming ? 'thinking' : 'idle'} />
+                    <AtlaasAvatar state={isStreaming ? 'thinking' : 'idle'} />
                     <div>
                         <p className="text-sm font-medium text-gray-900">{session.space.title}</p>
-                        <p className="text-xs text-gray-400">Powered by Bridger</p>
+                        <p className="text-xs text-gray-400">Powered by ATLAAS</p>
                     </div>
                 </div>
                 <button
@@ -221,7 +221,7 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
 
                 {isStreaming && !streamingContent && (
                     <div className="flex items-center gap-2">
-                        <BridgerAvatar state="thinking" size="sm" />
+                        <AtlaasAvatar state="thinking" size="sm" />
                         <ThinkingIndicator />
                     </div>
                 )}
@@ -242,7 +242,7 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Ask Bridger something..."
+                        placeholder="Ask ATLAAS something..."
                         rows={1}
                         disabled={isStreaming || limitReached}
                         className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-amber-400 focus:outline-none disabled:opacity-50"

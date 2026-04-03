@@ -25,7 +25,7 @@ export default function SpacesCreate() {
         classroom_id: '' as string,
         system_prompt: '',
         goals: [] as string[],
-        bridger_tone: 'encouraging' as string,
+        atlaas_tone: 'encouraging' as string,
         language: 'en',
         max_messages: '' as string | number,
     });
@@ -44,7 +44,7 @@ export default function SpacesCreate() {
                 classroom_id: form.data.classroom_id || null,
                 system_prompt: form.data.system_prompt || null,
                 goals,
-                bridger_tone: form.data.bridger_tone,
+                atlaas_tone: form.data.atlaas_tone,
                 language: form.data.language,
                 max_messages:
                     form.data.max_messages === '' || form.data.max_messages === null
@@ -117,7 +117,7 @@ export default function SpacesCreate() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
-                            Instructions for Bridger (system prompt)
+                            Instructions for ATLAAS (system prompt)
                         </label>
                         <textarea
                             rows={5}
@@ -158,10 +158,10 @@ export default function SpacesCreate() {
                                 <label key={t.value} className="flex items-center gap-2 text-sm">
                                     <input
                                         type="radio"
-                                        name="bridger_tone"
+                                        name="atlaas_tone"
                                         value={t.value}
-                                        checked={form.data.bridger_tone === t.value}
-                                        onChange={() => form.setData('bridger_tone', t.value)}
+                                        checked={form.data.atlaas_tone === t.value}
+                                        onChange={() => form.setData('atlaas_tone', t.value)}
                                     />
                                     {t.label}
                                 </label>

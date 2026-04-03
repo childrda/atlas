@@ -3,7 +3,7 @@ interface Props {
     size?: 'sm' | 'md';
 }
 
-export function BridgerAvatar({ state, size = 'md' }: Props) {
+export function AtlaasAvatar({ state, size = 'md' }: Props) {
     const dim = size === 'sm' ? 28 : 40;
 
     return (

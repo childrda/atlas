@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\AuthorizesStudentLearningSpace;
+use App\Jobs\GenerateSessionSummary;
 use App\Models\LearningSpace;
 use App\Models\StudentSession;
 use Illuminate\Http\RedirectResponse;
@@ -54,7 +55,7 @@ class SessionController extends Controller
             ->get(['id', 'role', 'content', 'created_at']);
 
         return Inertia::render('Student/Session', [
-            'session' => $session->load('space:id,title,description,bridger_tone,goals,max_messages'),
+            'session' => $session->load('space:id,title,description,atlaas_tone,goals,max_messages'),
             'messages' => $messages,
         ]);
     }
@@ -68,6 +69,8 @@ class SessionController extends Controller
             'status' => 'completed',
             'ended_at' => now(),
         ]);
+
+        GenerateSessionSummary::dispatch($session);
 
         return redirect()->route('student.dashboard')
             ->with('success', 'Great work! Your session is complete.');

@@ -21,7 +21,7 @@ export default function Login() {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
             <div className="w-full max-w-sm">
-                <h1 className="text-center text-3xl font-bold tracking-tight text-[#1E3A5F]">ATLAS</h1>
+                <h1 className="text-center text-3xl font-bold tracking-tight text-[#1E3A5F]">ATLAAS</h1>
                 <p className="mt-1 text-center text-xs font-medium uppercase tracking-wider text-[#1E3A5F]/70">
                     Augmented Teaching &amp; Learning AI System
                 </p>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SafetyAlert;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -57,6 +58,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'old' => [
                 'email' => $request->session()->getOldInput('email'),
+            ],
+            'alerts' => [
+                'openCount' => $user && $user->hasRole(['teacher', 'school_admin', 'district_admin'])
+                    ? SafetyAlert::where('teacher_id', $user->id)->where('status', 'open')->count()
+                    : 0,
             ],
         ];
     }

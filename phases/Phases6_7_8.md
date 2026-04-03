@@ -1,4 +1,4 @@
-# ATLAS — Phase 6: Teacher Toolkit
+# ATLAAS — Phase 6: Teacher Toolkit
 ## Prerequisite: Phase 5 checklist fully passing
 ## Stop when this works: Teacher can run all 7 built-in tools and see streaming output
 
@@ -464,7 +464,7 @@ Split panel:
 ---
 ---
 
-# ATLAS — Phase 7: Discover Library
+# ATLAAS — Phase 7: Discover Library
 ## Prerequisite: Phase 6 checklist fully passing
 ## Stop when this works: Teachers can publish spaces to the library, search, and import them
 
@@ -792,7 +792,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 ---
 ---
 
-# ATLAS — Phase 8: Docker & Deployment
+# ATLAAS — Phase 8: Docker & Deployment
 ## Prerequisite: Phase 7 checklist fully passing — full app working locally
 ## Stop when this works: The entire app runs with `docker compose up`
 
@@ -1065,7 +1065,7 @@ http {
 
 Create `.env.production.example`:
 ```bash
-APP_NAME=ATLAS
+APP_NAME=ATLAAS
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://your-district-domain.org
@@ -1076,8 +1076,8 @@ APP_KEY=
 DB_CONNECTION=pgsql
 DB_HOST=db
 DB_PORT=5432
-DB_DATABASE=atlas
-DB_USERNAME=atlas
+DB_DATABASE=atlaas
+DB_USERNAME=atlaas
 DB_PASSWORD=CHANGE_THIS_TO_STRONG_PASSWORD
 
 REDIS_HOST=redis
@@ -1091,7 +1091,7 @@ OPENAI_MODEL=llama3.2
 QUEUE_CONNECTION=redis
 BROADCAST_DRIVER=reverb
 
-REVERB_APP_ID=atlas
+REVERB_APP_ID=atlaas
 REVERB_APP_KEY=CHANGE_THIS_RANDOM_STRING
 REVERB_APP_SECRET=CHANGE_THIS_RANDOM_STRING
 REVERB_HOST=0.0.0.0
@@ -1110,10 +1110,10 @@ MEILISEARCH_KEY=CHANGE_THIS
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.your-district-mail.org
 MAIL_PORT=587
-MAIL_USERNAME=atlas@your-district.org
+MAIL_USERNAME=noreply@your-district.org
 MAIL_PASSWORD=CHANGE_THIS
-MAIL_FROM_ADDRESS=atlas@your-district.org
-MAIL_FROM_NAME=ATLAS
+MAIL_FROM_ADDRESS=noreply@your-district.org
+MAIL_FROM_NAME=ATLAAS
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -1137,7 +1137,7 @@ use Illuminate\Support\Facades\Hash;
 
 class CreateDistrictAdmin extends Command
 {
-    protected $signature = 'atlas:create-admin
+    protected $signature = 'atlaas:create-admin
         {--email= : Admin email address}
         {--name= : Admin full name}
         {--district= : District name}';
@@ -1184,7 +1184,7 @@ class CreateDistrictAdmin extends Command
 #!/bin/bash
 set -e
 
-echo "=== ATLAS First-Run Setup ==="
+echo "=== ATLAAS First-Run Setup ==="
 
 echo "Generating application key..."
 docker compose exec app php artisan key:generate
@@ -1203,7 +1203,7 @@ echo "Indexing spaces for search..."
 docker compose exec app php artisan scout:import "App\\Models\\LearningSpace"
 
 echo "Creating first district admin..."
-docker compose exec app php artisan atlas:create-admin
+docker compose exec app php artisan atlaas:create-admin
 
 echo ""
 echo "=== Setup complete ==="
@@ -1217,7 +1217,7 @@ echo "Horizon: https://your-district-domain.org/horizon (district admin only)"
 set -e
 
 DATE=$(date +%Y%m%d_%H%M)
-BACKUP_DIR="/backups/atlas"
+BACKUP_DIR="/backups/atlaas"
 mkdir -p "$BACKUP_DIR"
 
 echo "Backing up database..."
@@ -1277,7 +1277,7 @@ Run all of these after deployment.
 **Core features:**
 - [ ] Teacher can create a classroom and space
 - [ ] Student can join with a code and start a session
-- [ ] Bridger responds in real time (SSE streaming)
+- [ ] ATLAAS responds in real time (SSE streaming)
 - [ ] Safety phrase → alert created → teacher email sent (check mail logs)
 - [ ] Teacher's Compass View updates live when student sends a message
 - [ ] Toolkit tools stream output correctly
@@ -1291,13 +1291,13 @@ Run all of these after deployment.
 
 ---
 
-## ATLAS complete.
+## ATLAAS complete.
 
 | Phase | Builds                        | Done when                                          |
 |-------|-------------------------------|----------------------------------------------------|
 | 1     | Scaffold, auth, roles         | Teacher and student log in to separate dashboards  |
 | 2     | Classrooms, Spaces, Sessions  | Teacher creates a space; student enrolls           |
-| 3     | LLM adapter, safety, SSE chat | Student chats with Bridger in real time            |
+| 3     | LLM adapter, safety, SSE chat | Student chats with ATLAAS in real time            |
 | 4     | Horizon, alerts, summaries    | Alerts in DB; summaries generated after sessions   |
 | 5     | Reverb, Compass View          | Teacher watches sessions update live               |
 | 6     | Teacher Toolkit               | Teacher runs AI tools with streaming output        |

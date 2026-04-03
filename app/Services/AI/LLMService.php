@@ -29,7 +29,7 @@ class LLMService
         $flag = $this->safety->check($userMessage);
 
         if ($flag && in_array($flag->severity, ['critical', 'high'], true)) {
-            $safeResponse = $this->safety->safeBridgerResponse($flag->category);
+            $safeResponse = $this->safety->safeAtlaasResponse($flag->category);
             $this->storeMessages($session, $userMessage, $safeResponse, $flag);
 
             ProcessSafetyAlert::dispatch($session, $flag, $userMessage);

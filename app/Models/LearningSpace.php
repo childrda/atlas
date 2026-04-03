@@ -14,7 +14,7 @@ class LearningSpace extends BaseModel
     protected $fillable = [
         'district_id', 'teacher_id', 'classroom_id', 'title', 'description',
         'subject', 'grade_level', 'cover_image', 'system_prompt', 'goals',
-        'restrictions', 'allowed_tools', 'bridger_tone', 'language',
+        'restrictions', 'allowed_tools', 'atlaas_tone', 'language',
         'max_messages', 'require_teacher_present', 'allow_session_restart',
         'is_published', 'is_public', 'is_archived', 'join_code', 'opens_at', 'closes_at',
     ];
@@ -50,11 +50,23 @@ class LearningSpace extends BaseModel
         });
     }
 
-    public function district(): BelongsTo { return $this->belongsTo(District::class); }
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
+    }
 
-    public function teacher(): BelongsTo { return $this->belongsTo(User::class, 'teacher_id'); }
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'teacher_id');
+    }
 
-    public function classroom(): BelongsTo { return $this->belongsTo(Classroom::class); }
+    public function classroom(): BelongsTo
+    {
+        return $this->belongsTo(Classroom::class);
+    }
 
-    public function sessions(): HasMany { return $this->hasMany(StudentSession::class, 'space_id'); }
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(StudentSession::class, 'space_id');
+    }
 }

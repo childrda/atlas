@@ -1,6 +1,6 @@
-# ATLAS — Phase 3: AI & Student Chat
+# ATLAAS — Phase 3: AI & Student Chat
 ## Prerequisite: Phase 2 checklist fully passing
-## Stop when this works: A student can have a real conversation with Bridger inside a Space
+## Stop when this works: A student can have a real conversation with ATLAAS inside a Space
 
 ---
 
@@ -10,7 +10,7 @@
 - Safety filter (pattern-based, synchronous, < 1ms — runs on every message)
 - Prompt builder (assembles the full system prompt from teacher settings + safety rules)
 - Student session lifecycle (start, message, end)
-- SSE streaming so Bridger's response appears token by token
+- SSE streaming so ATLAAS's response appears token by token
 - Full student chat UI
 
 **No real-time teacher monitoring yet — that's Phase 5.**
@@ -166,7 +166,7 @@ class SafetyFilter
         return null;
     }
 
-    public function safeBridgerResponse(string $category): string
+    public function safeAtlaasResponse(string $category): string
     {
         return match ($category) {
             'self_harm', 'abuse_disclosure' =>
@@ -206,8 +206,8 @@ class PromptBuilder
     {
         $parts = [];
 
-        // 1. Bridger identity — always first
-        $parts[] = $this->identityBlock($space->bridger_tone);
+        // 1. ATLAAS identity — always first
+        $parts[] = $this->identityBlock($space->atlaas_tone);
 
         // 2. Teacher's custom instructions (with PII stripped just in case)
         if ($space->system_prompt) {
@@ -244,7 +244,7 @@ class PromptBuilder
             default     => 'Be patient, warm, and encouraging. Celebrate effort and small wins.',
         };
 
-        return "You are Bridger, a learning assistant built by this school district to support K-12 students. " .
+        return "You are ATLAAS (Augmented Teaching & Learning Assistive AI System), an assistive learning AI built by this school district to support K-12 students. " .
                "{$toneInstruction} " .
                "Always be age-appropriate, respectful, and never condescending.";
     }
@@ -298,7 +298,7 @@ class LLMService
         $flag = $this->safety->check($userMessage);
 
         if ($flag && in_array($flag->severity, ['critical', 'high'])) {
-            $safeResponse = $this->safety->safeBridgerResponse($flag->category);
+            $safeResponse = $this->safety->safeAtlaasResponse($flag->category);
             $this->storeMessages($session, $userMessage, $safeResponse, $flag);
 
             // Dispatch safety alert job (queued, does not block the response)
@@ -464,7 +464,7 @@ class SessionController extends Controller
             ->get(['id', 'role', 'content', 'created_at']);
 
         return Inertia::render('Student/Session', [
-            'session'  => $session->load('space:id,title,description,bridger_tone,goals,max_messages'),
+            'session'  => $session->load('space:id,title,description,atlaas_tone,goals,max_messages'),
             'messages' => $messages,
         ]);
     }
@@ -583,7 +583,7 @@ if (app()->environment('local')) {
     Route::get('/test-llm', function () {
         $response = \OpenAI\Laravel\Facades\OpenAI::chat()->create([
             'model'    => config('openai.model'),
-            'messages' => [['role' => 'user', 'content' => 'Reply with exactly: ATLAS LLM connected.']],
+            'messages' => [['role' => 'user', 'content' => 'Reply with exactly: ATLAAS LLM connected.']],
         ]);
         return $response->choices[0]->message->content;
     })->middleware(['auth', 'role:district_admin']);
@@ -731,10 +731,10 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
             {/* Header */}
             <header className="flex items-center justify-between border-b border-gray-100 px-6 py-3">
                 <div className="flex items-center gap-3">
-                    <BridgerAvatar state={isStreaming ? 'thinking' : 'idle'} />
+                    <AtlaasAvatar state={isStreaming ? 'thinking' : 'idle'} />
                     <div>
                         <p className="text-sm font-medium text-gray-900">{session.space.title}</p>
-                        <p className="text-xs text-gray-400">Powered by Bridger</p>
+                        <p className="text-xs text-gray-400">Powered by ATLAAS</p>
                     </div>
                 </div>
                 <button
@@ -757,7 +757,7 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
                     <ChatBubble key={msg.id} message={msg} />
                 ))}
 
-                {/* Streaming Bridger response */}
+                {/* Streaming ATLAAS response */}
                 {isStreaming && streamingContent && (
                     <ChatBubble
                         message={{ id: 'streaming', role: 'assistant', content: streamingContent, created_at: '' }}
@@ -768,7 +768,7 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
                 {/* Thinking indicator — shown before first chunk arrives */}
                 {isStreaming && !streamingContent && (
                     <div className="flex items-center gap-2">
-                        <BridgerAvatar state="thinking" size="sm" />
+                        <AtlaasAvatar state="thinking" size="sm" />
                         <ThinkingIndicator />
                     </div>
                 )}
@@ -789,7 +789,7 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
                         value={inputValue}
                         onChange={e => setInputValue(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Ask Bridger something..."
+                        placeholder="Ask ATLAAS something..."
                         rows={1}
                         disabled={isStreaming || limitReached}
                         className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-amber-400 focus:outline-none disabled:opacity-50"
@@ -811,20 +811,20 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
 }
 ```
 
-### `resources/js/Components/Bridger/BridgerAvatar.tsx`
-Simple SVG bridge arch, three states:
+### `resources/js/Components/Atlaas/AtlaasAvatar.tsx`
+Simple SVG arch motif, three states:
 ```tsx
 interface Props {
     state: 'idle' | 'thinking' | 'done';
     size?: 'sm' | 'md';
 }
 
-export function BridgerAvatar({ state, size = 'md' }: Props) {
+export function AtlaasAvatar({ state, size = 'md' }: Props) {
     const dim = size === 'sm' ? 28 : 40;
 
     return (
         <svg width={dim} height={dim} viewBox="0 0 40 40" fill="none">
-            {/* Two arch shapes forming a stylized bridge — district navy color */}
+            {/* Two arch shapes — district navy color */}
             <path
                 d="M4 32 Q4 12 20 12 Q36 12 36 32"
                 stroke="#1E3A5F"
@@ -858,7 +858,7 @@ Add to global CSS or a style tag:
 }
 ```
 
-### `resources/js/Components/Bridger/ChatBubble.tsx`
+### `resources/js/Components/Atlaas/ChatBubble.tsx`
 ```tsx
 import type { Message } from '@/types/models';
 
@@ -898,7 +898,7 @@ export function ChatBubble({ message, isStreaming = false }: Props) {
 }
 ```
 
-### `resources/js/Components/Bridger/ThinkingIndicator.tsx`
+### `resources/js/Components/Atlaas/ThinkingIndicator.tsx`
 ```tsx
 export function ThinkingIndicator() {
     return (
@@ -953,19 +953,19 @@ php artisan serve
 **Checklist — do not move to Phase 4 until all pass:**
 
 LLM connection:
-- [ ] Visit `/test-llm` as district_admin → returns "ATLAS LLM connected."
+- [ ] Visit `/test-llm` as district_admin → returns "ATLAAS LLM connected."
 - [ ] Change `OPENAI_BASE_URL` to Ollama and retry → same result, no code changes
 
 Student chat:
 - [ ] Student can click "Start Session" on a space → session created → chat page loads
-- [ ] Student types a message → Bridger responds token-by-token (streaming visible)
-- [ ] Student and Bridger bubbles are visually distinct (right vs left, different colors)
-- [ ] BridgerAvatar pulses while streaming, returns to idle when done
+- [ ] Student types a message → ATLAAS responds token-by-token (streaming visible)
+- [ ] Student and ATLAAS bubbles are visually distinct (right vs left, different colors)
+- [ ] AtlaasAvatar pulses while streaming, returns to idle when done
 - [ ] Thinking indicator appears before first chunk arrives
 - [ ] Student can click "I'm done" → session marked completed → redirected to dashboard
 
 Safety filter:
-- [ ] Type "I want to hurt myself" → Bridger responds with the safe message immediately
+- [ ] Type "I want to hurt myself" → ATLAAS responds with the safe message immediately
 - [ ] The LLM is NOT called for that message (check server logs — no OpenAI request)
 - [ ] Message is stored in DB with `flagged = true`
 

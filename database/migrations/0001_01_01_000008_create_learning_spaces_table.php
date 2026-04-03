@@ -22,7 +22,7 @@ return new class extends Migration
             $table->json('goals')->default('[]');
             $table->json('restrictions')->default('{}');
             $table->json('allowed_tools')->default('[]');
-            $table->string('bridger_tone')->default('encouraging'); // encouraging|socratic|direct|playful
+            $table->string('atlaas_tone')->default('encouraging'); // encouraging|socratic|direct|playful
             $table->string('language', 10)->default('en');
             $table->integer('max_messages')->nullable();
             $table->boolean('require_teacher_present')->default(false);

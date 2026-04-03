@@ -38,7 +38,7 @@ export interface LearningSpace {
     subject: string | null;
     grade_level: string | null;
     join_code: string;
-    bridger_tone: string;
+    atlaas_tone: string;
     is_published: boolean;
     is_archived: boolean;
     goals: string[];
@@ -72,4 +72,24 @@ export interface StudentSession {
     status: string;
     message_count: number;
     space: LearningSpace;
+}
+
+export interface SafetyAlert {
+    id: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    category: string;
+    status: 'open' | 'reviewed' | 'resolved' | 'dismissed' | 'escalated';
+    created_at: string;
+    student: { id: string; name: string };
+    session: { space: { id: string; title: string } };
+    reviewer_notes: string | null;
+}
+
+/** Completed session row on student dashboard (with AI summary) */
+export interface CompletedSessionRow {
+    id: string;
+    student_summary: string;
+    ended_at: string;
+    message_count: number;
+    space: { id: string; title: string };
 }
