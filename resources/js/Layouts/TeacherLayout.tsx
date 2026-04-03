@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, Bell, BookOpen, LayoutDashboard, Layers } from 'lucide-react';
+import { Activity, Bell, BookOpen, LayoutDashboard, Layers, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { User } from '@/types/models';
 
@@ -34,7 +34,13 @@ const nav: NavItem[] = [
         icon: 'compass' as const,
         badgeKey: 'compass_alerts' as const,
     },
-    { label: 'Toolkit', href: '#', prefix: '', exact: false, soon: true, icon: null },
+    {
+        label: 'Toolkit',
+        href: '/teach/toolkit',
+        prefix: '/teach/toolkit',
+        exact: false,
+        icon: 'toolkit' as const,
+    },
     { label: 'Discover', href: '#', prefix: '', exact: false, soon: true, icon: null },
 ];
 
@@ -96,6 +102,7 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
                                 {item.icon === 'book' && <BookOpen className="h-4 w-4 shrink-0 opacity-80" />}
                                 {item.icon === 'bell' && <Bell className="h-4 w-4 shrink-0 opacity-80" />}
                                 {item.icon === 'compass' && <Activity className="h-4 w-4 shrink-0 opacity-80" />}
+                                {item.icon === 'toolkit' && <Sparkles className="h-4 w-4 shrink-0 opacity-80" />}
                                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
                                 {showAlertBadge && (
                                     <span className="shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">

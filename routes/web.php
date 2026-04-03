@@ -12,6 +12,7 @@ use App\Http\Controllers\Teacher\ClassroomController;
 use App\Http\Controllers\Teacher\CompassController;
 use App\Http\Controllers\Teacher\SpaceController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
+use App\Http\Controllers\Teacher\ToolkitController;
 use Illuminate\Support\Facades\Route;
 use OpenAI\Laravel\Facades\OpenAI;
 
@@ -42,6 +43,10 @@ Route::middleware(['auth', 'role:teacher,school_admin,district_admin'])
         Route::get('compass/sessions/{session}', [CompassController::class, 'session'])->name('compass.session');
         Route::post('compass/sessions/{session}/inject', [CompassController::class, 'injectMessage'])->name('compass.inject');
         Route::post('compass/sessions/{session}/end', [CompassController::class, 'endSession'])->name('compass.end');
+
+        Route::get('toolkit', [ToolkitController::class, 'index'])->name('toolkit.index');
+        Route::get('toolkit/{tool:slug}', [ToolkitController::class, 'show'])->name('toolkit.show');
+        Route::post('toolkit/{tool:slug}/run', [ToolkitController::class, 'run'])->name('toolkit.run');
 
         Route::get('classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
         Route::post('classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');

@@ -93,3 +93,33 @@ export interface CompletedSessionRow {
     message_count: number;
     space: { id: string; title: string };
 }
+
+export type ToolkitFieldType = 'text' | 'textarea' | 'number' | 'select' | 'checkbox_group';
+
+export interface ToolkitFieldSchema {
+    name: string;
+    label: string;
+    type: ToolkitFieldType;
+    required?: boolean;
+    placeholder?: string;
+    options?: string[];
+}
+
+export interface TeacherTool {
+    id: string;
+    slug: string;
+    name: string;
+    description: string;
+    icon: string;
+    category: string;
+    input_schema: ToolkitFieldSchema[];
+    system_prompt_template: string;
+    is_built_in: boolean;
+    is_active: boolean;
+}
+
+export interface ToolRun {
+    id: string;
+    created_at: string;
+    tool: Pick<TeacherTool, 'id' | 'name' | 'icon' | 'slug'>;
+}

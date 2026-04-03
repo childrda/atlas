@@ -742,6 +742,8 @@ See the `/phases` directory for staged build instructions and feature checklists
 
 **Phase 5 (Compass View + Reverb)** is implemented in this repo: broadcasting events, `routes/channels.php`, teacher routes under `/teach/compass`, and the Echo bootstrap in `resources/js/bootstrap.ts`. Use the section [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5) above to enable it in each environment.
 
+**Phase 6 (Teacher Toolkit)** is implemented: `/teach/toolkit` lists **seven built-in AI tools** (lesson planner, rubric builder, assessment generator, differentiation helper, parent comms drafter, feedback generator, IEP accommodation suggester). Each tool uses a schema-driven form and **SSE streaming** output (same pattern as student chat). Run migrations and seed **`BuiltInToolsSeeder`** (included in `DatabaseSeeder`, or `php artisan db:seed --class=BuiltInToolsSeeder`) so tools exist. Requires a working **LLM** (`OPENAI_*` in `.env`) like the student chat feature.
+
 ---
 
 ## License
