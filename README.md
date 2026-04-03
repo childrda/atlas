@@ -14,7 +14,7 @@
 
 **Augmented Teaching & Learning Assistive AI System**
 
-ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching and learning: multi-tenant structure (district → school → user), role-based access (district admin, school admin, teacher, student), separate teacher and student portals, the ATLAAS assistive AI in student sessions, queued safety alerts, and session summaries.
+ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching and learning: multi-tenant structure (district → school → user), role-based access (district admin, school admin, teacher, student), separate teacher and student portals, the ATLAAS assistive AI in student sessions, queued safety alerts, session summaries, and **Compass View** (live teacher dashboard over **Laravel Reverb** WebSockets when enabled).
 
 ---
 
@@ -30,14 +30,15 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 8. [Web server: Apache](#web-server-apache)
 9. [TLS (HTTPS) with Let’s Encrypt](#tls-https-with-lets-encrypt)
 10. [Queues and Laravel Horizon](#queues-and-laravel-horizon)
-11. [Task scheduler (cron)](#task-scheduler-cron)
-12. [Google Workspace sign-in (OAuth)](#google-workspace-sign-in-oauth)
-13. [LLM provider (OpenAI, local, Azure, Anthropic via gateway)](#llm-provider-openai-local-azure-anthropic-via-gateway)
-14. [Production hardening checklist](#production-hardening-checklist)
-15. [Reference: `.env` variables](#reference-env-variables)
-16. [Demo accounts (after seeding)](#demo-accounts-after-seeding)
-17. [Implementation phases](#implementation-phases)
-18. [License](#license)
+11. [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5)
+12. [Task scheduler (cron)](#task-scheduler-cron)
+13. [Google Workspace sign-in (OAuth)](#google-workspace-sign-in-oauth)
+14. [LLM provider (OpenAI, local, Azure, Anthropic via gateway)](#llm-provider-openai-local-azure-anthropic-via-gateway)
+15. [Production hardening checklist](#production-hardening-checklist)
+16. [Reference: `.env` variables](#reference-env-variables)
+17. [Demo accounts (after seeding)](#demo-accounts-after-seeding)
+18. [Implementation phases](#implementation-phases)
+19. [License](#license)
 
 ---
 
@@ -53,6 +54,7 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 | **MySQL or MariaDB** | Primary database (recommended for production) |
 | **Redis** | Queues (`QUEUE_CONNECTION=redis`) and Horizon metadata |
 | **Laravel Horizon** | Supervises queue workers (requires `ext-pcntl` and `ext-posix` on Linux) |
+| **Laravel Reverb** | Optional WebSocket server for **Compass View** live updates (`php artisan reverb:start`); uses the same Redis host as queues when scaling is enabled |
 
 Optional but typical for production: **Postfix** or SMTP relay for mail, **Certbot** for TLS certificates, **UFW** or cloud firewall rules.
 
@@ -413,6 +415,56 @@ Horizon’s UI is at `https://your-host/horizon`. Access is restricted to users 
 
 ---
 
+## Laravel Reverb and Compass View (Phase 5)
+
+**Compass View** (`/teach/compass`) shows **active student sessions** for the teacher’s spaces, **live** when broadcasting is enabled: session start/end, message activity, and safety alerts (including a full-screen modal for **critical** alerts). It uses **Laravel Reverb** (self-hosted Pusher-compatible WebSockets), separate from the student chat **SSE** stream.
+
+### Install dependencies
+
+Reverb is already a Composer dependency (`laravel/reverb`). On **Windows** (e.g. XAMPP), Composer may require ignoring Unix-only extensions used by Horizon:
+
+```bash
+composer install --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix
+```
+
+On **Linux** production servers, install `php-pcntl` and `php-posix` so Horizon and Reverb behave as documented.
+
+Frontend packages (**laravel-echo**, **pusher-js**, **zustand**) are installed via `npm install` with the rest of the app.
+
+### Environment variables
+
+Copy the **Reverb** and **Vite** block from `.env.example` into `.env`, then set:
+
+| Setting | Purpose |
+|--------|---------|
+| `BROADCAST_CONNECTION=reverb` | Use Reverb as the default broadcaster (use `log` or `null` to disable live WS) |
+| `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Must match between Laravel, the Reverb server, and the browser |
+| `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | Hostname/port/scheme **the browser** uses to open the WebSocket (often your public hostname and `https` in production) |
+| `REVERB_SERVER_HOST`, `REVERB_SERVER_PORT` | Address **Reverb listens on** (defaults: `0.0.0.0` and `8080`; see `config/reverb.php`) |
+| `VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT`, `VITE_REVERB_SCHEME` | Baked into the JS bundle at **build time** — set before `npm run build` on the server |
+
+After changes: `php artisan config:cache` and rebuild assets (`npm run build`) whenever `VITE_*` values change.
+
+### Processes to run
+
+For full local behavior (matches `/phases/Phase5_Compass_View.md`):
+
+1. **Web app** — `php artisan serve` or Apache/your vhost  
+2. **Queue worker** — `php artisan horizon` (or `queue:listen`) so safety jobs run and `AlertFired` broadcasts after `ProcessSafetyAlert`  
+3. **Reverb** — `php artisan reverb:start`  
+4. **Vite** (local only) — `npm run dev`  
+
+If `VITE_REVERB_APP_KEY` is unset, the UI still loads Compass from the server; **live updates are disabled** until Reverb and env are configured.
+
+### Production notes
+
+- Run Reverb under **Supervisor** (or systemd) alongside Horizon, similar to the Horizon example above, with `php artisan reverb:start --debug` only while troubleshooting.
+- Prefer **TLS** (`REVERB_SCHEME=https`, `wss`) and put Reverb behind your reverse proxy or on a private network; do not expose an unsecured WebSocket port to the internet.
+- Set a **strong** `REVERB_APP_SECRET` and keep it out of version control.
+- **Channel authorization** is defined in `routes/channels.php` (teachers subscribe only to `compass.{theirUserId}`; admins in the same district may subscribe per channel rules). To verify: `php artisan tinker` and ensure another user’s `User` cannot authorize a foreign `compass.{id}` channel.
+
+---
+
 ## Task scheduler (cron)
 
 Laravel’s scheduler runs maintenance and scheduled jobs. Add to `www-data` crontab (or the user that runs PHP):
@@ -563,6 +615,7 @@ Use this as a baseline before exposing the app to the internet.
 - [ ] `php artisan config:cache route:cache view:cache` after deploy
 - [ ] Demo seeders **not** run on production, or change all default passwords
 - [ ] **Horizon** (`/horizon`) only for `district_admin`; confirm non-admins get 403
+- [ ] **Reverb** running under process manager if Compass live updates are required; strong `REVERB_APP_SECRET`; WebSockets served with **WSS** behind HTTPS
 
 ### Transport and cookies
 
@@ -630,6 +683,12 @@ Use this as a baseline before exposing the app to the internet.
 | `SESSION_ENCRYPT` | `true` recommended with HTTPS |
 | `SESSION_SECURE_COOKIE` | `true` when HTTPS-only |
 | `CACHE_STORE` | `database`, `redis`, `file` |
+| **Broadcasting / Reverb (Compass)** | |
+| `BROADCAST_CONNECTION` | `reverb` for live Compass; `log`, `null`, or omitted default otherwise |
+| `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Reverb application credentials |
+| `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | Client-facing WebSocket endpoint |
+| `REVERB_SERVER_HOST`, `REVERB_SERVER_PORT` | Listen address for `php artisan reverb:start` |
+| `VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT`, `VITE_REVERB_SCHEME` | Frontend Echo config (build-time) |
 | **Queue / Redis** | |
 | `QUEUE_CONNECTION` | `redis` for Horizon |
 | `REDIS_CLIENT` | `predis` (this project includes Predis) or `phpredis` if ext installed |
@@ -659,6 +718,7 @@ Use this as a baseline before exposing the app to the internet.
 | `OPENAI_REQUEST_TIMEOUT` | Optional timeout seconds |
 | **Frontend** | |
 | `VITE_APP_NAME` | Usually `${APP_NAME}` |
+| `VITE_REVERB_*` | See **Broadcasting / Reverb** above |
 
 ---
 
@@ -679,6 +739,8 @@ After `php artisan db:seed` (includes `TestDataSeeder`):
 ## Implementation phases
 
 See the `/phases` directory for staged build instructions and feature checklists.
+
+**Phase 5 (Compass View + Reverb)** is implemented in this repo: broadcasting events, `routes/channels.php`, teacher routes under `/teach/compass`, and the Echo bootstrap in `resources/js/bootstrap.ts`. Use the section [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5) above to enable it in each environment.
 
 ---
 

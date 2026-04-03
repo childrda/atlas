@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Events\SessionEnded;
+use App\Events\SessionStarted;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\AuthorizesStudentLearningSpace;
 use App\Jobs\GenerateSessionSummary;
@@ -42,6 +44,11 @@ class SessionController extends Controller
             ]
         );
 
+        $session->load(['student', 'space']);
+        if ($session->wasRecentlyCreated) {
+            SessionStarted::dispatch($session);
+        }
+
         return redirect()->route('student.sessions.show', $session);
     }
 
@@ -69,6 +76,9 @@ class SessionController extends Controller
             'status' => 'completed',
             'ended_at' => now(),
         ]);
+
+        $session->load(['student', 'space']);
+        SessionEnded::dispatch($session);
 
         GenerateSessionSummary::dispatch($session);
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\AI;
 
+use App\Events\MessageSent;
 use App\Jobs\ProcessSafetyAlert;
 use App\Models\Message;
 use App\Models\StudentSession;
@@ -126,5 +127,8 @@ class LLMService
         ]);
 
         $session->increment('message_count', 2);
+        $session->refresh();
+        $session->load(['student', 'space']);
+        MessageSent::dispatch($session, substr($storedUserContent, 0, 80));
     }
 }

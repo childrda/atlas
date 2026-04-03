@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\AlertFired;
 use App\Mail\SafetyAlertMail;
 use App\Models\SafetyAlert;
 use App\Models\StudentSession;
@@ -46,6 +47,8 @@ class ProcessSafetyAlert implements ShouldBeEncrypted, ShouldQueue
             'trigger_content' => $this->triggerContent,
             'status' => 'open',
         ]);
+
+        AlertFired::dispatch($alert->load('student'));
 
         if ($this->flag->severity === 'critical') {
             Mail::to($teacher->email)

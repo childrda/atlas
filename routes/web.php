@@ -9,6 +9,7 @@ use App\Http\Controllers\Student\StudentJoinController;
 use App\Http\Controllers\Student\StudentSpaceController;
 use App\Http\Controllers\Teacher\AlertController;
 use App\Http\Controllers\Teacher\ClassroomController;
+use App\Http\Controllers\Teacher\CompassController;
 use App\Http\Controllers\Teacher\SpaceController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,11 @@ Route::middleware(['auth', 'role:teacher,school_admin,district_admin'])
 
         Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
         Route::patch('alerts/{alert}', [AlertController::class, 'update'])->name('alerts.update');
+
+        Route::get('compass', [CompassController::class, 'index'])->name('compass.index');
+        Route::get('compass/sessions/{session}', [CompassController::class, 'session'])->name('compass.session');
+        Route::post('compass/sessions/{session}/inject', [CompassController::class, 'injectMessage'])->name('compass.inject');
+        Route::post('compass/sessions/{session}/end', [CompassController::class, 'endSession'])->name('compass.end');
 
         Route::get('classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
         Route::post('classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');
