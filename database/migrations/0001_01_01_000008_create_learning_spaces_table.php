@@ -19,9 +19,10 @@ return new class extends Migration
             $table->string('grade_level')->nullable();
             $table->string('cover_image')->nullable();
             $table->text('system_prompt')->nullable();
-            $table->json('goals')->default('[]');
-            $table->json('restrictions')->default('{}');
-            $table->json('allowed_tools')->default('[]');
+            // MySQL/MariaDB: JSON columns cannot use DEFAULT; defaults set in LearningSpace model.
+            $table->json('goals')->nullable();
+            $table->json('restrictions')->nullable();
+            $table->json('allowed_tools')->nullable();
             $table->string('atlaas_tone')->default('encouraging'); // encouraging|socratic|direct|playful
             $table->string('language', 10)->default('en');
             $table->integer('max_messages')->nullable();

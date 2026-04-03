@@ -41,6 +41,9 @@ class LearningSpace extends BaseModel
             if (empty($space->join_code)) {
                 $space->join_code = JoinCode::generate('learning_spaces');
             }
+            $space->goals ??= [];
+            $space->restrictions ??= [];
+            $space->allowed_tools ??= [];
         });
 
         static::addGlobalScope('district', function ($query) {
