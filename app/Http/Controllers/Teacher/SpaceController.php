@@ -6,6 +6,7 @@ use App\Helpers\JoinCode;
 use App\Http\Controllers\Controller;
 use App\Models\Classroom;
 use App\Models\LearningSpace;
+use App\Models\SpaceLibraryItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -69,7 +70,7 @@ class SpaceController extends Controller
         $this->authorize('view', $space);
 
         return Inertia::render('Teacher/Spaces/Show', [
-            'space' => $space->load('classroom'),
+            'space' => $space->load(['classroom', 'libraryItem']),
             'recentSessions' => $space->sessions()
                 ->with('student:id,name')
                 ->latest('started_at')
@@ -119,11 +120,77 @@ class SpaceController extends Controller
     {
         $this->authorize('update', $space);
 
-        $space->update(['is_published' => ! $space->is_published]);
+        if ($request->boolean('unpublish')) {
+            $space->update(['is_published' => false, 'is_public' => false]);
+            SpaceLibraryItem::where('space_id', $space->id)->delete();
+            $this->syncSearchIndex($space, false);
 
-        $label = $space->is_published ? 'published' : 'unpublished';
+            return back()->with('success', 'Space unpublished and removed from Discover.');
+        }
 
-        return back()->with('success', "Space {$label}.");
+        $request->validate([
+            'share_to_discover' => 'boolean',
+            'grade_band' => 'nullable|string|max:50',
+            'tags' => 'nullable|string|max:500',
+            'library_description' => 'nullable|string|max:2000',
+        ]);
+
+        $wasPublished = $space->is_published;
+        $share = $request->boolean('share_to_discover');
+        $tagsRaw = $request->input('tags', '');
+        $tags = array_values(array_filter(array_map('trim', explode(',', (string) $tagsRaw))));
+        $tags = array_slice($tags, 0, 5);
+
+        if (! $space->is_published) {
+            $space->update([
+                'is_published' => true,
+                'is_public' => $share,
+            ]);
+        } else {
+            $space->update(['is_public' => $share]);
+        }
+
+        if ($share) {
+            SpaceLibraryItem::updateOrCreate(
+                ['space_id' => $space->id],
+                [
+                    'title' => $space->title,
+                    'description' => $request->input('library_description') ?: $space->description,
+                    'subject' => $space->subject,
+                    'grade_band' => $request->input('grade_band') ?: $space->grade_level,
+                    'tags' => $tags ?: null,
+                    'published_at' => now(),
+                ]
+            );
+            $this->syncSearchIndex($space, true);
+            $message = $wasPublished
+                ? 'Discover listing updated.'
+                : 'Space published and listed on Discover.';
+        } else {
+            SpaceLibraryItem::where('space_id', $space->id)->delete();
+            $this->syncSearchIndex($space, false);
+            $message = $wasPublished
+                ? 'Removed from Discover. Students can still join with your join code.'
+                : 'Space published (not shared to Discover).';
+        }
+
+        return back()->with('success', $message);
+    }
+
+    private function syncSearchIndex(LearningSpace $space, bool $index): void
+    {
+        if (config('scout.driver') === 'null') {
+            return;
+        }
+        try {
+            if ($index) {
+                $space->searchable();
+            } else {
+                $space->unsearchable();
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function duplicate(LearningSpace $space): RedirectResponse
@@ -143,7 +210,9 @@ class SpaceController extends Controller
     public function destroy(LearningSpace $space): RedirectResponse
     {
         $this->authorize('delete', $space);
-        $space->update(['is_archived' => true]);
+        $space->update(['is_archived' => true, 'is_public' => false]);
+        SpaceLibraryItem::where('space_id', $space->id)->delete();
+        $this->syncSearchIndex($space, false);
 
         return redirect()->route('teacher.spaces.index')
             ->with('success', 'Space archived.');

@@ -10,6 +10,7 @@ use App\Http\Controllers\Student\StudentSpaceController;
 use App\Http\Controllers\Teacher\AlertController;
 use App\Http\Controllers\Teacher\ClassroomController;
 use App\Http\Controllers\Teacher\CompassController;
+use App\Http\Controllers\Teacher\DiscoverController;
 use App\Http\Controllers\Teacher\SpaceController;
 use App\Http\Controllers\Teacher\TeacherDashboardController;
 use App\Http\Controllers\Teacher\ToolkitController;
@@ -47,6 +48,10 @@ Route::middleware(['auth', 'role:teacher,school_admin,district_admin'])
         Route::get('toolkit', [ToolkitController::class, 'index'])->name('toolkit.index');
         Route::get('toolkit/{tool:slug}', [ToolkitController::class, 'show'])->name('toolkit.show');
         Route::post('toolkit/{tool:slug}/run', [ToolkitController::class, 'run'])->name('toolkit.run');
+
+        Route::get('discover', [DiscoverController::class, 'index'])->name('discover.index');
+        Route::post('discover/{libraryItem}/import', [DiscoverController::class, 'import'])->name('discover.import');
+        Route::post('discover/{libraryItem}/rate', [DiscoverController::class, 'rate'])->name('discover.rate');
 
         Route::get('classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
         Route::post('classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');

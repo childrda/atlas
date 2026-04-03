@@ -31,6 +31,21 @@ export interface Classroom {
     spaces?: LearningSpace[];
 }
 
+/** Published listing on Discover (teacher-shared library row). */
+export interface SpaceLibraryItem {
+    id: string;
+    space_id: string;
+    title: string;
+    description: string | null;
+    subject: string | null;
+    grade_band: string | null;
+    tags: string[] | null;
+    download_count: number;
+    rating: number;
+    rating_count: number;
+    published_at: string | null;
+}
+
 export interface LearningSpace {
     id: string;
     title: string;
@@ -40,6 +55,7 @@ export interface LearningSpace {
     join_code: string;
     atlaas_tone: string;
     is_published: boolean;
+    is_public: boolean;
     is_archived: boolean;
     goals: string[];
     sessions_count?: number;
@@ -48,7 +64,8 @@ export interface LearningSpace {
     language?: string;
     max_messages?: number | null;
     classroom?: { id: string; name: string } | null;
-    teacher?: { id: string; name: string };
+    teacher?: { id: string; name: string; school?: School | null };
+    library_item?: SpaceLibraryItem | null;
 }
 
 /** Recent session row on teacher space detail */

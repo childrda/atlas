@@ -5,11 +5,13 @@ namespace App\Models;
 use App\Helpers\JoinCode;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 class LearningSpace extends BaseModel
 {
-    use SoftDeletes;
+    use Searchable, SoftDeletes;
 
     /**
      * Not sent to student browsers (Inertia). Session chat loads a minimal space column list.
@@ -83,5 +85,37 @@ class LearningSpace extends BaseModel
     public function sessions(): HasMany
     {
         return $this->hasMany(StudentSession::class, 'space_id');
+    }
+
+    public function libraryItem(): HasOne
+    {
+        return $this->hasOne(SpaceLibraryItem::class, 'space_id');
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        if (! $this->is_published || ! $this->is_public || $this->is_archived) {
+            return false;
+        }
+
+        return $this->libraryItem()
+            ->whereNotNull('published_at')
+            ->exists();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (string) $this->id,
+            'title' => $this->title,
+            'description' => $this->description ?? '',
+            'subject' => $this->subject ?? '',
+            'is_public' => $this->is_public,
+            'is_published' => $this->is_published,
+            'is_archived' => $this->is_archived,
+        ];
     }
 }

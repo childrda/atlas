@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, Bell, BookOpen, LayoutDashboard, Layers, Sparkles } from 'lucide-react';
+import { Activity, Bell, BookOpen, Globe2, LayoutDashboard, Layers, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { User } from '@/types/models';
 
@@ -8,7 +8,7 @@ type NavItem = {
     href: string;
     prefix: string;
     exact: boolean;
-    icon: 'dash' | 'layers' | 'book' | 'bell' | 'compass' | null;
+    icon: 'dash' | 'layers' | 'book' | 'bell' | 'compass' | 'toolkit' | 'discover' | null;
     soon?: boolean;
     /** Red open-alert count badge (same count as Alerts). */
     badgeKey?: 'alerts' | 'compass_alerts';
@@ -41,7 +41,13 @@ const nav: NavItem[] = [
         exact: false,
         icon: 'toolkit' as const,
     },
-    { label: 'Discover', href: '#', prefix: '', exact: false, soon: true, icon: null },
+    {
+        label: 'Discover',
+        href: '/teach/discover',
+        prefix: '/teach/discover',
+        exact: false,
+        icon: 'discover' as const,
+    },
 ];
 
 function pathActive(url: string, prefix: string, exact: boolean): boolean {
@@ -103,6 +109,7 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
                                 {item.icon === 'bell' && <Bell className="h-4 w-4 shrink-0 opacity-80" />}
                                 {item.icon === 'compass' && <Activity className="h-4 w-4 shrink-0 opacity-80" />}
                                 {item.icon === 'toolkit' && <Sparkles className="h-4 w-4 shrink-0 opacity-80" />}
+                                {item.icon === 'discover' && <Globe2 className="h-4 w-4 shrink-0 opacity-80" />}
                                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
                                 {showAlertBadge && (
                                     <span className="shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
