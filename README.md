@@ -1,5 +1,17 @@
 # ATLAAS
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Inertia.js](https://img.shields.io/badge/Inertia.js-3-9553E9)](https://inertiajs.com/)
+[![Redis](https://img.shields.io/badge/Redis-queues-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![Laravel Horizon](https://img.shields.io/badge/Horizon-queues-405263?logo=laravel&logoColor=white)](https://laravel.com/docs/horizon)
+[![GitHub](https://img.shields.io/badge/GitHub-childrda%2Fatlas-181717?logo=github)](https://github.com/childrda/atlas)
+
 **Augmented Teaching & Learning Assistive AI System**
 
 ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching and learning: multi-tenant structure (district → school → user), role-based access (district admin, school admin, teacher, student), separate teacher and student portals, the ATLAAS assistive AI in student sessions, queued safety alerts, and session summaries.
