@@ -224,6 +224,8 @@ npm ci
 npm run build
 ```
 
+**After `git pull` on an existing server:** run `npm ci` (or `npm install`) **before** `npm run build` whenever `package.json` or `package-lock.json` changed. Skipping this causes Vite errors such as failing to resolve `zustand`, `laravel-echo`, or `pusher-js`.
+
 Run migrations and (optional) seed demo data:
 
 ```bash
