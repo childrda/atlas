@@ -26,21 +26,19 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 4. [Database (MySQL or MariaDB)](#database-mysql-or-mariadb)
 5. [Redis](#redis)
 6. [Deploy application code](#deploy-application-code)
-7. [Environment file (`.env`)](#environment-file-env)
+7. [Configuring environment variables](#configuring-environment-variables)
 8. [Web server: Apache](#web-server-apache)
 9. [TLS (HTTPS) with Let’s Encrypt](#tls-https-with-lets-encrypt)
 10. [Queues and Laravel Horizon](#queues-and-laravel-horizon)
-11. [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5)
-12. [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7)
+11. [Live teacher dashboard (Reverb and Compass View)](#live-teacher-dashboard-reverb-and-compass-view)
+12. [Discover search (Scout and Meilisearch)](#discover-search-scout-and-meilisearch)
 13. [Task scheduler (cron)](#task-scheduler-cron)
 14. [Google Workspace sign-in (OAuth)](#google-workspace-sign-in-oauth)
-15. [LLM provider (OpenAI, local, Azure, Anthropic via gateway)](#llm-provider-openai-local-azure-anthropic-via-gateway)
+15. [LLM provider (OpenAI-compatible API)](#llm-provider-openai-compatible-api)
 16. [Production hardening checklist](#production-hardening-checklist)
-17. [Reference: `.env` variables](#reference-env-variables)
-18. [Demo accounts (after seeding)](#demo-accounts-after-seeding)
-19. [Implementation phases (1-7)](#implementation-phases-1-7)
-20. [Verifying phases (1-7)](#verifying-phases-1-7)
-21. [License](#license)
+17. [Demo accounts (after seeding)](#demo-accounts-after-seeding)
+18. [Testing and smoke checks](#testing-and-smoke-checks)
+19. [License](#license)
 
 ---
 
@@ -56,8 +54,8 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 | **MySQL or MariaDB** | Primary database (recommended for production) |
 | **Redis** | Queues (`QUEUE_CONNECTION=redis`) and Horizon metadata |
 | **Laravel Horizon** | Supervises queue workers (requires `ext-pcntl` and `ext-posix` on Linux) |
-| **Laravel Reverb** | Optional WebSocket server for **Compass View** live updates (`php artisan reverb:start`); uses the same Redis host as queues when scaling is enabled |
-| **Meilisearch** | Optional search engine for **Discover** when `SCOUT_DRIVER=meilisearch`; without it, Discover still lists and filters spaces and uses SQL search fallback |
+| **Laravel Reverb** | Optional WebSocket server for Compass View live updates (`php artisan reverb:start`); uses Redis when Reverb scaling is enabled |
+| **Meilisearch** | Optional search engine for Discover when `SCOUT_DRIVER=meilisearch`; without it, Discover still lists, filters, and searches via SQL |
 
 Optional but typical for production: **Postfix** or SMTP relay for mail, **Certbot** for TLS certificates, **UFW** or cloud firewall rules.
 
@@ -83,8 +81,6 @@ sudo apt update && sudo apt upgrade -y
 
 ### 2. Install Apache, PHP, and required PHP extensions
 
-Laravel and ATLAAS need a modern PHP and common extensions:
-
 ```bash
 sudo apt install -y \
   apache2 \
@@ -108,13 +104,8 @@ sudo apt install -y \
 
 If `php8.3` is unavailable on your release, use `php8.2` consistently in package names.
 
-**Why these matter**
-
 - `curl`, `mbstring`, `xml`, `zip`, `bcmath`, `intl`, `mysql`, `sqlite3`: Laravel and dependencies
 - `pcntl`, `posix`: **Laravel Horizon** (queue master process on Linux)
-- `readline`, `gd`: useful for CLI and common packages
-
-Enable Apache modules used by Laravel (rewrite, headers; optional SSL):
 
 ```bash
 sudo a2enmod rewrite headers ssl
@@ -131,9 +122,7 @@ php -r "unlink('composer-setup.php');"
 composer --version
 ```
 
-### 4. Install Node.js 20 LTS (for building assets on the server or a CI machine)
-
-Using NodeSource (example for Ubuntu):
+### 4. Install Node.js 20 LTS
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -142,7 +131,7 @@ node -v
 npm -v
 ```
 
-You can instead build assets on a developer machine and deploy only `public/build/`.
+You can build assets on a developer machine and deploy only `public/build/`.
 
 ---
 
@@ -161,8 +150,6 @@ sudo mysql_secure_installation
 sudo mysql -u root -p
 ```
 
-In the MySQL shell:
-
 ```sql
 CREATE DATABASE atlaas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'atlaas'@'localhost' IDENTIFIED BY 'choose_a_strong_password_here';
@@ -171,9 +158,7 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-**Production:** Prefer a dedicated DB user with only the `atlaas` database privileges. If the DB is on another host, use `'atlaas'@'%'` only with firewall rules and TLS to the DB.
-
-You will set `DB_*` variables in `.env` to match (see [Reference: `.env` variables](#reference-env-variables)).
+**Production:** Prefer a dedicated DB user with only the `atlaas` database privileges. Match credentials to `DB_*` in `.env` (see [Configuring environment variables](#configuring-environment-variables)).
 
 ---
 
@@ -185,19 +170,14 @@ sudo systemctl enable redis-server
 sudo systemctl start redis-server
 ```
 
-**Harden Redis for internet-facing servers**
-
-- By default Redis often listens on `127.0.0.1` only — **keep it that way** unless you have a separate app tier; then use TLS, ACL passwords, and firewall rules.
-- Set `requirepass` in `redis.conf` if anything beyond localhost can reach Redis.
-- In `.env` set `REDIS_PASSWORD` when you enable authentication.
-
-ATLAAS uses Redis for queues (`QUEUE_CONNECTION=redis`) and Horizon.
+- Prefer binding Redis to **127.0.0.1** unless you have a separate app tier; then use TLS, ACL passwords, and firewall rules.
+- Set `requirepass` in `redis.conf` if Redis is reachable beyond localhost, and set `REDIS_PASSWORD` in `.env`.
 
 ---
 
 ## Deploy application code
 
-Example: deploy under `/var/www/atlaas` with ownership for the web user (`www-data` on Ubuntu).
+Example under `/var/www/atlaas` as user `www-data` on Ubuntu.
 
 ```bash
 sudo mkdir -p /var/www
@@ -207,72 +187,39 @@ git clone <your-repo-url> atlaas
 cd atlaas
 ```
 
-Install PHP dependencies:
-
 ```bash
 composer install --no-dev --optimize-autoloader
 ```
 
-Copy environment file and generate key:
+On **Windows** (e.g. XAMPP), Composer may need:
+
+```bash
+composer install --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix
+```
 
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-Install JS dependencies and build production assets:
+Edit `.env` using [Configuring environment variables](#configuring-environment-variables), then:
 
 ```bash
 npm ci
 npm run build
 ```
 
-**After `git pull` on an existing server:** run `npm ci` (or `npm install`) **before** `npm run build` whenever `package.json` or `package-lock.json` changed. Skipping this causes Vite errors such as failing to resolve `zustand`, `laravel-echo`, or `pusher-js`.
-
-Run migrations and (optional) seed demo data:
+**After `git pull`:** run `npm ci` before `npm run build` whenever `package.json` or `package-lock.json` changed (avoids missing packages such as `zustand`, `laravel-echo`, `pusher-js`).
 
 ```bash
 php artisan migrate --force
-# Optional demo users/spaces:
-php artisan db:seed --force
-```
-
-**Automated tests (sanity check):** `php artisan test` uses SQLite in memory (`phpunit.xml`). A valid `APP_KEY` is set there for CI/local runs; some environments warn if `.env` is missing—tests should still pass.
-
-Create storage link and fix permissions (critical on Linux):
-
-```bash
+php artisan db:seed --force   # optional demo data
 php artisan storage:link
 sudo chown -R www-data:www-data /var/www/atlaas/storage /var/www/atlaas/bootstrap/cache
 sudo chmod -R ug+rwx /var/www/atlaas/storage /var/www/atlaas/bootstrap/cache
 ```
 
-**Never** make the whole project world-writable. Only `storage` and `bootstrap/cache` need write access by the web/PHP user.
-
----
-
-## Environment file (`.env`)
-
-1. Copy from example: `cp .env.example .env`
-2. Run `php artisan key:generate` once
-3. Edit `.env` for production (see full reference below)
-
-**Minimum production changes**
-
-| Variable | Production value |
-|----------|------------------|
-| `APP_ENV` | `production` |
-| `APP_DEBUG` | `false` |
-| `APP_URL` | `https://your.full.hostname` |
-| `DB_CONNECTION` | `mysql` |
-| `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | Your MySQL settings |
-| `QUEUE_CONNECTION` | `redis` |
-| `REDIS_*` | Match your Redis install |
-| `SESSION_DRIVER` | `database` or `redis` |
-| `SESSION_SECURE_COOKIE` | `true` when using HTTPS only |
-| `MAIL_*` | Real SMTP for alerts and system mail |
-
-After changing `.env`:
+Only `storage` and `bootstrap/cache` need write access for the web/PHP user.
 
 ```bash
 php artisan config:cache
@@ -280,63 +227,179 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-To clear caches during troubleshooting:
+Troubleshooting: `php artisan optimize:clear`
 
-```bash
-php artisan optimize:clear
-```
+---
 
-### Outgoing email (SMTP, app password, TLS vs SSL)
+## Configuring environment variables
 
-ATLAAS sends mail through Laravel’s **SMTP** mailer (e.g. safety alerts). Configure the mailbox and encryption in `.env`.
+Copy `.env.example` to `.env`, run `php artisan key:generate` once, then set variables below. **After any change:** `php artisan config:cache` (and rebuild frontend if `VITE_*` changed: `npm run build`).
 
-| Setting | Purpose |
-|---------|---------|
-| `MAIL_MAILER` | Set to `smtp` for real delivery (use `log` in local dev). |
-| `MAIL_HOST` | SMTP server (e.g. `smtp.gmail.com`, `smtp.office365.com`). |
-| `MAIL_PORT` | Usually **587** (TLS/STARTTLS) or **465** (SSL). |
-| `MAIL_USERNAME` | Full email address for the sending mailbox. |
-| `MAIL_PASSWORD` | **App password** or SMTP password (not your normal login if the provider forbids it). |
-| `MAIL_FROM_ADDRESS` | “From” address (often the same as `MAIL_USERNAME` for Gmail/Workspace). |
-| `MAIL_FROM_NAME` | Display name (e.g. `ATLAAS`). |
+The canonical list in the repo is **`.env.example`**; this section explains what each group does and how ATLAAS uses it.
 
-**Encryption — two equivalent ways** (if both are set, `MAIL_SCHEME` wins):
+### Application identity and debugging
 
-1. **`MAIL_SCHEME`** (Symfony mailer): `smtp` = use STARTTLS (typical with port **587**); `smtps` = implicit SSL (typical with port **465**).
-2. **`MAIL_ENCRYPTION`**: `tls` or `starttls` → same as `MAIL_SCHEME=smtp`; `ssl` or `smtps` → same as `MAIL_SCHEME=smtps`.
+| Variable | What it does |
+|----------|----------------|
+| `APP_NAME` | Display name in the UI and mail (default ATLAAS). |
+| `APP_ENV` | `local`, `staging`, or `production`. Use `production` on the internet. |
+| `APP_KEY` | **Required.** Laravel encryption and signed cookies. Generate with `php artisan key:generate`; back it up securely. |
+| `APP_DEBUG` | When `true`, shows stack traces (never in public production). |
+| `APP_URL` | Public site URL including scheme, e.g. `https://atlaas.yourdistrict.edu`. Used for URL generation, OAuth redirects, and trusted URL checks. |
+| `APP_LOCALE`, `APP_FALLBACK_LOCALE`, `APP_FAKER_LOCALE` | Default language and faker locale for seeding. |
+| `APP_MAINTENANCE_DRIVER` | How maintenance mode is stored (`file` default). |
+| `BCRYPT_ROUNDS` | Cost factor for hashing passwords (default 12). |
 
-Examples:
+### Logging
+
+| Variable | What it does |
+|----------|----------------|
+| `LOG_CHANNEL`, `LOG_STACK` | Where application logs go (`stack` / `single` typical). |
+| `LOG_LEVEL` | Minimum log level (`debug` in dev, `warning` or `error` in production often). |
+| `LOG_DEPRECATIONS_CHANNEL` | Optional channel for deprecation warnings. |
+
+### Database
+
+| Variable | What it does |
+|----------|----------------|
+| `DB_CONNECTION` | `mysql`, `pgsql`, or `sqlite`. Production should be `mysql` (or `pgsql`) with a real server. |
+| `DB_HOST` | Database hostname or IP. |
+| `DB_PORT` | Port (MySQL default 3306). |
+| `DB_DATABASE` | Database name. |
+| `DB_USERNAME` / `DB_PASSWORD` | Credentials (use a least-privilege user in production). |
+
+SQLite (`DB_CONNECTION=sqlite` with `DB_DATABASE` path) is fine for local experimentation; the default `.env.example` uses SQLite for quick starts.
+
+### Sessions and cookies
+
+| Variable | What it does |
+|----------|----------------|
+| `SESSION_DRIVER` | `database`, `redis`, or `file`. `database` is a common default if you already use MySQL. |
+| `SESSION_LIFETIME` | Idle timeout in minutes. |
+| `SESSION_ENCRYPT` | Encrypt session payload (`true` recommended with HTTPS). |
+| `SESSION_SECURE_COOKIE` | Set `true` when the site is **HTTPS-only** so cookies are not sent over plain HTTP. |
+| `SESSION_PATH` / `SESSION_DOMAIN` | Cookie path and domain; set `SESSION_DOMAIN` only if you deliberately share cookies across subdomains. |
+
+### Cache
+
+| Variable | What it does |
+|----------|----------------|
+| `CACHE_STORE` | `database`, `redis`, or `file`. Use `redis` if you want cache in memory across workers. |
+| `CACHE_PREFIX` | Optional key prefix when sharing Redis with other apps. |
+
+### Filesystem
+
+| Variable | What it does |
+|----------|----------------|
+| `FILESYSTEM_DISK` | Default disk for `Storage` (`local` typical; set `s3` if you configure AWS below). |
+
+### Queues and Redis
+
+| Variable | What it does |
+|----------|----------------|
+| `QUEUE_CONNECTION` | Use **`redis`** in production so **Horizon** can run safety alerts, session summaries, and optional Scout indexing. `sync` runs jobs in-process (dev only for heavy jobs). |
+| `REDIS_CLIENT` | `predis` (bundled) or `phpredis` if the PHP extension is installed. |
+| `REDIS_HOST` | Usually `127.0.0.1` on a single server. |
+| `REDIS_PASSWORD` | Set when Redis `requirepass` is enabled. |
+| `REDIS_PORT` | Default `6379`. |
+
+### Mail (SMTP)
+
+ATLAAS sends mail for **safety alerts** and system messages. For real delivery set `MAIL_MAILER=smtp` and configure host, auth, and encryption.
+
+| Variable | What it does |
+|----------|----------------|
+| `MAIL_MAILER` | `smtp` for real mail; **`log`** writes messages to the log (good for local dev). |
+| `MAIL_HOST` / `MAIL_PORT` | SMTP server; **587** often STARTTLS, **465** often implicit SSL. |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | SMTP login; many providers require an **app password**, not the normal login. |
+| `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME` | From header seen by recipients. |
+| `MAIL_SCHEME` | Symfony style: `smtp` = STARTTLS (typical with 587), `smtps` = implicit SSL (typical with 465). If set, it overrides `MAIL_ENCRYPTION`. |
+| `MAIL_ENCRYPTION` | Friendly aliases: `tls` / `starttls` or `ssl` / `smtps` if you prefer not to use `MAIL_SCHEME`. |
+| `MAIL_TIMEOUT` | SMTP timeout in seconds. |
+| `MAIL_URL` | Optional single DSN that overrides host/port/user/pass when set. |
+
+Example (Google Workspace / Gmail with STARTTLS):
 
 ```env
-# Google Workspace / Gmail (STARTTLS)
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_SCHEME=smtp
 MAIL_USERNAME=noreply@yourdistrict.edu
-MAIL_PASSWORD=your-16-char-app-password
+MAIL_PASSWORD=your-app-password
 MAIL_FROM_ADDRESS=noreply@yourdistrict.edu
 MAIL_FROM_NAME="ATLAAS"
-
-# Same provider using friendly TLS alias (omit MAIL_SCHEME)
-# MAIL_ENCRYPTION=tls
-
-# Implicit SSL (port 465)
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=465
-MAIL_SCHEME=smtps
 ```
 
-Optional: `MAIL_TIMEOUT` (seconds). After changes run `php artisan config:cache`.
+### Broadcasting, Reverb, and Compass View
+
+Compass View uses **Laravel Echo** in the browser. When `BROADCAST_CONNECTION=reverb`, events go through **Laravel Reverb** (WebSockets). Otherwise use `log` or `null` to disable live updates (pages still load).
+
+| Variable | What it does |
+|----------|----------------|
+| `BROADCAST_CONNECTION` | **`reverb`** enables live Compass updates; **`log`** or **`null`** disables WebSocket broadcasting. |
+| `REVERB_APP_ID` | Application id shared by PHP, the Reverb server, and the browser. |
+| `REVERB_APP_KEY` | Public key used by the browser (paired with secret server-side). |
+| `REVERB_APP_SECRET` | Secret shared by Laravel and the Reverb server; use a long random value in production. |
+| `REVERB_HOST` / `REVERB_PORT` / `REVERB_SCHEME` | What the **browser** uses to open the WebSocket (`wss` / `https` in production behind TLS). |
+| `REVERB_SERVER_HOST` / `REVERB_SERVER_PORT` | What **`php artisan reverb:start`** binds to (often `0.0.0.0` and `8080`); see `config/reverb.php`. |
+
+**Vite / frontend (baked in at build time):**
+
+| Variable | What it does |
+|----------|----------------|
+| `VITE_APP_NAME` | Usually `${APP_NAME}`; exposed to the client bundle. |
+| `VITE_REVERB_APP_KEY` | Must match `REVERB_APP_KEY`. |
+| `VITE_REVERB_HOST` / `VITE_REVERB_PORT` / `VITE_REVERB_SCHEME` | Must match what browsers use to reach Reverb (often your public hostname and `https` / `443` when TLS terminates at a proxy). |
+
+If `VITE_REVERB_*` are unset or wrong, Compass loads but **live updates do not work** until you fix env and run `npm run build` again.
+
+### Discover, Scout, and Meilisearch
+
+| Variable | What it does |
+|----------|----------------|
+| `SCOUT_DRIVER` | **`meilisearch`** for full-text search against indexed learning spaces when Meilisearch is running. **`collection`** or driver mismatch falls back to SQL search on Discover library rows for text search; listing and filters always work. |
+| `SCOUT_QUEUE` | `true` defers indexing to the queue (needs workers running). |
+| `MEILISEARCH_HOST` | HTTP base URL of Meilisearch (e.g. `http://127.0.0.1:7700`). |
+| `MEILISEARCH_KEY` | API key when Meilisearch is secured (`MEILI_MASTER_KEY` in Docker). |
+
+After enabling Meilisearch: `php artisan scout:import "App\Models\LearningSpace"`. Do not expose Meilisearch port 7700 to the public internet without a proxy and TLS.
+
+### Google OAuth (optional)
+
+| Variable | What it does |
+|----------|----------------|
+| `GOOGLE_CLIENT_ID` | OAuth client id from Google Cloud Console. |
+| `GOOGLE_CLIENT_SECRET` | OAuth client secret. |
+| `GOOGLE_REDIRECT_URI` | Must exactly match the redirect URI in Google Console, typically `${APP_URL}/auth/google/callback`. |
+
+Google sign-in **does not** create users automatically; the email must already exist in ATLAAS.
+
+### LLM (OpenAI-compatible)
+
+Student chat, toolkit tools, and safety flows call an **OpenAI-compatible** HTTP API (`config/openai.php` reads these):
+
+| Variable | What it does |
+|----------|----------------|
+| `OPENAI_API_KEY` | API key (some local servers accept a placeholder). |
+| `OPENAI_BASE_URL` | Base URL, often ending in `/v1`. |
+| `OPENAI_MODEL` | Model name your provider expects. |
+| `OPENAI_ORGANIZATION` / `OPENAI_PROJECT` | Optional OpenAI-specific headers. |
+| `OPENAI_REQUEST_TIMEOUT` | Request timeout in seconds. |
+
+### Optional: AWS S3
+
+| Variable | What it does |
+|----------|----------------|
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `AWS_BUCKET`, `AWS_USE_PATH_STYLE_ENDPOINT` | Standard Laravel S3 disk configuration if you set `FILESYSTEM_DISK=s3` and configure `config/filesystems.php` accordingly. |
 
 ---
 
 ## Web server: Apache
 
-Point the site **`DocumentRoot`** at the `public` directory, not the project root.
+Point **`DocumentRoot`** at the `public` directory.
 
-Example virtual host: `/etc/apache2/sites-available/atlaas.conf`
+Example `/etc/apache2/sites-available/atlaas.conf`:
 
 ```apache
 <VirtualHost *:80>
@@ -353,17 +416,13 @@ Example virtual host: `/etc/apache2/sites-available/atlaas.conf`
 </VirtualHost>
 ```
 
-Enable the site and reload:
-
 ```bash
 sudo a2dissite 000-default.conf
 sudo a2ensite atlaas.conf
 sudo systemctl reload apache2
 ```
 
-Laravel’s `public/.htaccess` handles front-controller routing when `AllowOverride All` is set.
-
-**If you use php-fpm with Apache** instead of `libapache2-mod-php`, configure `ProxyPassMatch` or `SetHandler` to the PHP-FPM socket; the `DocumentRoot` rule is the same: **`public`**.
+With **php-fpm**, point PHP at the FPM socket; `DocumentRoot` stays **`public`**.
 
 ---
 
@@ -374,27 +433,19 @@ sudo apt install -y certbot python3-certbot-apache
 sudo certbot --apache -d atlaas.yourdistrict.edu
 ```
 
-Certbot will install a vhost for SSL. After HTTPS works:
-
-- Set `APP_URL=https://atlaas.yourdistrict.edu` in `.env`
-- Set `SESSION_SECURE_COOKIE=true`
-- Optionally add `SESSION_DOMAIN=.yourdistrict.edu` if you share cookies across subdomains (only if you understand the implications)
-
-Reload config cache: `php artisan config:cache`
+Then set `APP_URL` to `https://...`, `SESSION_SECURE_COOKIE=true`, and `php artisan config:cache`.
 
 ---
 
 ## Queues and Laravel Horizon
 
-Horizon runs queue workers for jobs (safety alerts, session summaries, etc.).
-
-**Install Supervisor** so Horizon restarts if it exits:
+Horizon runs workers for safety alerts, session summaries, Scout indexing (if queued), etc.
 
 ```bash
 sudo apt install -y supervisor
 ```
 
-Create `/etc/supervisor/conf.d/atlaas-horizon.conf`:
+`/etc/supervisor/conf.d/atlaas-horizon.conf`:
 
 ```ini
 [program:atlaas-horizon]
@@ -408,88 +459,34 @@ stdout_logfile=/var/www/atlaas/storage/logs/horizon.log
 stopwaitsecs=3600
 ```
 
-Then:
-
 ```bash
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start atlaas-horizon
 ```
 
-Horizon’s UI is at `https://your-host/horizon`. Access is restricted to users with the **`district_admin`** role (see `app/Providers/HorizonServiceProvider.php`).
-
-**Firewall:** Do not expose Redis (6379) or MySQL (3306) to the public internet.
+Horizon dashboard: `https://your-host/horizon` — restricted to **`district_admin`** (`app/Providers/HorizonServiceProvider.php`). Do not expose Redis or MySQL to the internet.
 
 ---
 
-## Laravel Reverb and Compass View (Phase 5)
+## Live teacher dashboard (Reverb and Compass View)
 
-**Compass View** (`/teach/compass`) shows **active student sessions** for the teacher’s spaces, **live** when broadcasting is enabled: session start/end, message activity, and safety alerts (including a full-screen modal for **critical** alerts). It uses **Laravel Reverb** (self-hosted Pusher-compatible WebSockets), separate from the student chat **SSE** stream.
+**Compass View** (`/teach/compass`) shows active student sessions, message activity, and safety alerts **in real time** when broadcasting is enabled. It uses **Laravel Reverb** (Pusher-compatible WebSockets). Student chat itself uses **SSE**, not Reverb.
 
-### Install dependencies
+1. Set **`BROADCAST_CONNECTION=reverb`** and all **`REVERB_*`** / **`VITE_REVERB_*`** variables ([see above](#broadcasting-reverb-and-compass-view)).
+2. Run **`php artisan reverb:start`** (Supervisor/systemd in production).
+3. Run **Horizon** (or a queue worker) so alert jobs can broadcast after processing.
+4. Rebuild assets after changing **`VITE_*`**: `npm run build`.
 
-Reverb is already a Composer dependency (`laravel/reverb`). On **Windows** (e.g. XAMPP), Composer may require ignoring Unix-only extensions used by Horizon:
-
-```bash
-composer install --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix
-```
-
-On **Linux** production servers, install `php-pcntl` and `php-posix` so Horizon and Reverb behave as documented.
-
-Frontend packages (**laravel-echo**, **pusher-js**, **zustand**) are installed via `npm install` with the rest of the app.
-
-### Environment variables
-
-Copy the **Reverb** and **Vite** block from `.env.example` into `.env`, then set:
-
-| Setting | Purpose |
-|--------|---------|
-| `BROADCAST_CONNECTION=reverb` | Use Reverb as the default broadcaster (use `log` or `null` to disable live WS) |
-| `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Must match between Laravel, the Reverb server, and the browser |
-| `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | Hostname/port/scheme **the browser** uses to open the WebSocket (often your public hostname and `https` in production) |
-| `REVERB_SERVER_HOST`, `REVERB_SERVER_PORT` | Address **Reverb listens on** (defaults: `0.0.0.0` and `8080`; see `config/reverb.php`) |
-| `VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT`, `VITE_REVERB_SCHEME` | Baked into the JS bundle at **build time** — set before `npm run build` on the server |
-
-After changes: `php artisan config:cache` and rebuild assets (`npm run build`) whenever `VITE_*` values change.
-
-### Processes to run
-
-For full local behavior (matches `/phases/Phase5_Compass_View.md`):
-
-1. **Web app** — `php artisan serve` or Apache/your vhost  
-2. **Queue worker** — `php artisan horizon` (or `queue:listen`) so safety jobs run and `AlertFired` broadcasts after `ProcessSafetyAlert`  
-3. **Reverb** — `php artisan reverb:start`  
-4. **Vite** (local only) — `npm run dev`  
-
-If `VITE_REVERB_APP_KEY` is unset, the UI still loads Compass from the server; **live updates are disabled** until Reverb and env are configured.
-
-### Production notes
-
-- Run Reverb under **Supervisor** (or systemd) alongside Horizon, similar to the Horizon example above, with `php artisan reverb:start --debug` only while troubleshooting.
-- Prefer **TLS** (`REVERB_SCHEME=https`, `wss`) and put Reverb behind your reverse proxy or on a private network; do not expose an unsecured WebSocket port to the internet.
-- Set a **strong** `REVERB_APP_SECRET` and keep it out of version control.
-- **Channel authorization** is defined in `routes/channels.php` (teachers subscribe only to `compass.{theirUserId}`; admins in the same district may subscribe per channel rules). To verify: `php artisan tinker` and ensure another user’s `User` cannot authorize a foreign `compass.{id}` channel.
+**Production:** use **WSS** behind HTTPS, strong `REVERB_APP_SECRET`, and do not expose an unsecured WebSocket port. Channel rules live in **`routes/channels.php`** (teachers subscribe to their own `compass.{userId}` channel).
 
 ---
 
-## Laravel Scout and Discover (Phase 7)
+## Discover search (Scout and Meilisearch)
 
-**Discover** (`/teach/discover`) is a cross-district catalog of learning spaces teachers have chosen to share. It uses **`space_library_items`** for listing metadata (title, description, tags, grade band, ratings, download counts) and **Laravel Scout** on **`LearningSpace`** when you use the **Meilisearch** driver for full-text search.
+**Discover** (`/teach/discover`) lists spaces teachers shared publicly. Configure **`SCOUT_*`** and **`MEILISEARCH_*`** [as above](#discover-scout-and-meilisearch).
 
-### Environment variables
-
-Copy the Scout / Meilisearch block from `.env.example`. Typical setups:
-
-| Setting | Purpose |
-|--------|---------|
-| `SCOUT_DRIVER` | `meilisearch` in production (with Meilisearch running). `collection` is fine for local dev; Discover still works using SQL `LIKE` on library rows when the driver is not Meilisearch. |
-| `SCOUT_QUEUE` | `true` to index asynchronously via your queue workers (recommended at scale). |
-| `MEILISEARCH_HOST` | Base URL of the Meilisearch instance (e.g. `http://127.0.0.1:7700` or `http://meilisearch:7700` in Docker). |
-| `MEILISEARCH_KEY` | API key if your Meilisearch instance requires one (`MEILI_MASTER_KEY` in Docker). |
-
-After changing Scout or Meilisearch settings: `php artisan config:cache`.
-
-### Run Meilisearch (Docker example)
+**Docker example:**
 
 ```bash
 docker run -d -p 7700:7700 \
@@ -497,37 +494,23 @@ docker run -d -p 7700:7700 \
   getmeili/meilisearch:v1.7
 ```
 
-Set `MEILISEARCH_HOST` and `MEILISEARCH_KEY` in `.env` to match, then `SCOUT_DRIVER=meilisearch`.
-
-### Index existing spaces
-
-After migrations and Meilisearch are available:
+Then `SCOUT_DRIVER=meilisearch`, matching host/key, and:
 
 ```bash
 php artisan scout:import "App\Models\LearningSpace"
 ```
 
-Only spaces that are **published**, **public** (shared to Discover), **not archived**, and have a **published library row** are indexed (`shouldBeSearchable()`).
+Only published, public, non-archived spaces with a published library row are indexed. If Meilisearch is down, publishing still works; errors are logged.
 
-### Teacher workflow
-
-- **Publish** a space from the space detail page; optionally enable **Share to Discover** and set grade band, tags, and listing description.
-- **Discover** in the teacher sidebar: **search** (debounced; query string updates via Inertia), **subject** / **grade band** / **sort** filters, **Add to my spaces** to copy a listing into your account (new join code), and **rate** (1–5) to update the rolling average.
-- **District admins** see **District approve** on listings whose space belongs to their district; approved items show a **District approved** badge (one-way for now).
-
-If Meilisearch is unreachable, publishing still succeeds; indexing errors are reported to the log and do not block the HTTP response.
+**Teacher workflow:** From a space, use **Share to Discover** when publishing; in Discover, search (debounced), filters, **Add to my spaces**, ratings, and **District approve** (district admins, same district as the space).
 
 ---
 
 ## Task scheduler (cron)
 
-Laravel’s scheduler runs maintenance and scheduled jobs. Add to `www-data` crontab (or the user that runs PHP):
-
 ```bash
 sudo crontab -e -u www-data
 ```
-
-Add:
 
 ```
 * * * * * cd /var/www/atlaas && php artisan schedule:run >> /dev/null 2>&1
@@ -537,75 +520,24 @@ Add:
 
 ## Google Workspace sign-in (OAuth)
 
-ATLAAS uses **Laravel Socialite** with the **`google`** driver. The login button points to `/auth/google`; Google redirects back to `/auth/google/callback`.
+ATLAAS uses **Laravel Socialite** (`/auth/google` → `/auth/google/callback`). Set **`GOOGLE_*`** in `.env` [as above](#google-oauth-optional).
 
-**Important behavior in this app**
+**Console setup (summary):**
 
-- The user’s **email must already exist** in ATLAAS as an **active** user. Google sign-in **does not** auto-provision accounts; unknown emails see an error on the login page.
-- Plan: create users (or sync roster) first, then allow Google for those addresses.
+1. [Google Cloud Console](https://console.cloud.google.com/) — create or select a project.
+2. OAuth consent screen — Internal (Workspace-only) or External with test users.
+3. Credentials → OAuth client **Web application** — Authorized JavaScript origin: `https://atlaas.yourdistrict.edu`; Authorized redirect: `https://atlaas.yourdistrict.edu/auth/google/callback`.
+4. Paste Client ID and secret into `.env`; run `php artisan config:cache`.
 
-### A. Google Cloud project
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a **project** (e.g. `ATLAAS Production`) or select an existing one.
-3. For **Workspace-only** logins, your organization may use an **internal** OAuth consent screen (requires Google Workspace + Cloud Identity organization setup). Otherwise use **External** and add **test users** until the app is verified.
-
-### B. OAuth consent screen
-
-1. **APIs & Services → OAuth consent screen**
-2. Choose **Internal** (Workspace users in your org only) or **External**
-3. Fill app name, support email, authorized domains (your public domain, e.g. `yourdistrict.edu`)
-4. Scopes: Socialite typically needs **openid**, **email**, **profile** (Google may add these by default when you configure the client)
-
-### C. Create OAuth client credentials
-
-1. **APIs & Services → Credentials → Create credentials → OAuth client ID**
-2. Application type: **Web application**
-3. **Authorized JavaScript origins**  
-   - `https://atlaas.yourdistrict.edu`
-4. **Authorized redirect URIs** (must match exactly)  
-   - `https://atlaas.yourdistrict.edu/auth/google/callback`
-5. Save the **Client ID** and **Client secret**
-
-### D. `.env` and `config/services.php`
-
-Set in `.env`:
-
-```env
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-client-secret
-GOOGLE_REDIRECT_URI=https://atlaas.yourdistrict.edu/auth/google/callback
-```
-
-`config/services.php` already maps these to the `google` key for Socialite.
-
-Run `php artisan config:cache` after changes.
-
-### E. Workspace admin notes
-
-- Restricting login to your domain is enforced by **who you create in ATLAAS** and **which emails you allow in Google**; for stricter control, use **Internal** OAuth app type or Google’s admin policies for which third-party apps users may access.
-- **Domain-wide delegation** is a different pattern (service accounts impersonating users) and is **not** what this Socialite flow uses.
+**Behavior:** The user’s email must **already exist** in ATLAAS. Unknown emails get an error on login.
 
 ---
 
-## LLM provider (OpenAI, local, Azure, Anthropic via gateway)
+## LLM provider (OpenAI-compatible API)
 
-ATLAAS uses the **`openai-php/laravel`** client. It talks to an **OpenAI-compatible HTTP API**: same request shape as OpenAI’s `/v1/chat/completions`.
+Same variables as [LLM (OpenAI-compatible)](#llm-openai-compatible) in the `.env` section.
 
-Configuration is driven by **`config/openai.php`**, which reads:
-
-| `.env` variable | Purpose |
-|-----------------|--------|
-| `OPENAI_API_KEY` | API key (or placeholder for some local servers) |
-| `OPENAI_BASE_URL` | Base URL for the API (include `/v1` if your provider expects it) |
-| `OPENAI_MODEL` | Model id string sent to the provider |
-| `OPENAI_ORGANIZATION` | Optional; OpenAI org id |
-| `OPENAI_PROJECT` | Optional; OpenAI project id |
-| `OPENAI_REQUEST_TIMEOUT` | Optional; seconds (default 30) |
-
-After any change: `php artisan config:cache`.
-
-### OpenAI (hosted)
+**OpenAI hosted:**
 
 ```env
 OPENAI_API_KEY=sk-...
@@ -613,9 +545,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-### Local: Ollama
-
-Install [Ollama](https://ollama.com/) on a server reachable from the app. Ollama exposes an OpenAI-compatible API on port **11434**.
+**Ollama (local):**
 
 ```env
 OPENAI_API_KEY=ollama
@@ -623,162 +553,40 @@ OPENAI_BASE_URL=http://127.0.0.1:11434/v1
 OPENAI_MODEL=llama3.2
 ```
 
-Use a non-root URL only on a trusted network; for production, put a reverse proxy with auth/TLS in front.
+**Azure OpenAI** and **vLLM** use the same client with different `OPENAI_BASE_URL` / model strings; see provider docs.
 
-### Local: vLLM or other OpenAI-compatible servers
+**Anthropic** is not called natively; use an OpenAI-compatible gateway (e.g. LiteLLM) if you need Claude.
 
-Point `OPENAI_BASE_URL` at your server’s OpenAI-compatible base (often `http://host:8000/v1`) and set `OPENAI_MODEL` to the served model name. Use an API key if your gateway requires one.
-
-### Azure OpenAI
-
-Azure uses a different host and often an **API key** plus **deployment name** as the model.
-
-```env
-OPENAI_API_KEY=your_azure_key
-OPENAI_BASE_URL=https://YOUR_RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT
-OPENAI_MODEL=gpt-4o-mini
-```
-
-Exact URL patterns vary by Azure API version; follow Microsoft’s “OpenAI-compatible endpoint” docs for your resource.
-
-### Anthropic (Claude)
-
-The **Anthropic Messages API is not the same protocol** as OpenAI’s chat completions. This codebase does **not** call Anthropic natively.
-
-**Practical options:**
-
-1. Run an **OpenAI-compatible proxy** (e.g. **LiteLLM**, **LangChain proxy**, or similar) that accepts OpenAI-style requests and forwards to Anthropic; set `OPENAI_BASE_URL` to that proxy and `OPENAI_MODEL` to the Claude model id the proxy expects.
-2. Use a provider that exposes **OpenAI-compatible** access to Claude (if your vendor documents it).
-
-There is no `ANTHROPIC_*` block in this repo until such an integration is added in code.
-
-### Verify connectivity (local/staging)
-
-With `APP_ENV=local`, a district admin can hit the dev-only route **`/test-llm`** (see `routes/web.php`) after authenticating, to confirm the app reaches the configured endpoint. **Remove or protect this route before production** if you expose it beyond trusted admins.
+**Local check:** With `APP_ENV=local`, a district admin can use **`/test-llm`**. Remove or protect it in production if exposed.
 
 ---
 
 ## Production hardening checklist
 
-Use this as a baseline before exposing the app to the internet.
-
 ### Application
 
-- [ ] `APP_ENV=production`, `APP_DEBUG=false`, real `APP_KEY` set (`php artisan key:generate` once, then back up the key securely)
-- [ ] `APP_URL` matches the public HTTPS URL
+- [ ] `APP_ENV=production`, `APP_DEBUG=false`, secure `APP_KEY` backed up
+- [ ] `APP_URL` matches public HTTPS URL
 - [ ] `php artisan config:cache route:cache view:cache` after deploy
-- [ ] Demo seeders **not** run on production, or change all default passwords
-- [ ] **Horizon** (`/horizon`) only for `district_admin`; confirm non-admins get 403
-- [ ] **Reverb** running under process manager if Compass live updates are required; strong `REVERB_APP_SECRET`; WebSockets served with **WSS** behind HTTPS
-- [ ] **Discover / Scout:** if `SCOUT_DRIVER=meilisearch`, run Meilisearch on a private network, set a strong `MEILISEARCH_KEY`, and do not expose port **7700** to the public internet without a reverse proxy and TLS
+- [ ] Demo seeders not on production (or change passwords)
+- [ ] Horizon at `/horizon` only for `district_admin`
+- [ ] Reverb behind TLS / reverse proxy if Compass live mode is on
+- [ ] Meilisearch on a private network with a strong key if used; do not expose 7700 publicly without TLS
 
-### Transport and cookies
+### Transport, database, Redis, Apache, secrets, mail
 
-- [ ] HTTPS everywhere (redirect HTTP → HTTPS)
-- [ ] `SESSION_SECURE_COOKIE=true`, `SESSION_ENCRYPT=true` recommended when using HTTPS
-- [ ] Sensible `SESSION_LIFETIME`; consider `SESSION_SAME_SITE=strict` or `lax` per your SSO needs
-
-### Database and Redis
-
-- [ ] MySQL user has privileges **only** on the ATLAAS database
-- [ ] Strong DB password; MySQL bound to localhost or private network only
-- [ ] Redis **not** exposed publicly; password/ACL if accessed beyond localhost
-
-### Server and network
-
-- [ ] OS firewall (`ufw`, cloud security groups): allow **80, 443** only; SSH from known IPs if possible
-- [ ] SSH: key-based auth, `PermitRootLogin no`, `PasswordAuthentication no`
-- [ ] Automatic security updates (`unattended-upgrades` on Ubuntu)
-- [ ] If behind a load balancer or CDN, configure **trusted proxies** in Laravel so `Request::secure()` and client IPs are correct (see Laravel docs for `TrustProxies` / `bootstrap/app.php` in your Laravel version)
-
-### Apache
-
-- [ ] Disable unused modules and default sites
-- [ ] `ServerTokens Prod`, `ServerSignature Off`
-- [ ] Consider **ModSecurity** or a WAF in front of the app
-- [ ] Rate limiting at the edge (CDN, reverse proxy) for `/login` and APIs
-
-### Secrets and files
-
-- [ ] `.env` not in web root, mode `600`, owned by root or deploy user — not world-readable
-- [ ] `storage` and `bootstrap/cache` writable only by the PHP/queue user
-- [ ] Off-site backups of DB and `APP_KEY`
-
-### Mail
-
-- [ ] Real SMTP (`MAIL_MAILER=smtp`) with `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, app password in `MAIL_PASSWORD`, and TLS (`MAIL_SCHEME=smtp` + 587) or SSL (`MAIL_SCHEME=smtps` + 465) for critical alerts
+- [ ] HTTPS, `SESSION_SECURE_COOKIE=true`, consider `SESSION_ENCRYPT=true`
+- [ ] DB user scoped to one database; DB not on public internet
+- [ ] Redis not public; password if reachable off-box
+- [ ] Firewall: 80/443 only where possible; SSH hardened
+- [ ] `.env` mode `600`, not in web root
+- [ ] `storage` / `bootstrap/cache` writable only by PHP/queue user
+- [ ] Real SMTP for alert mail
 
 ### Ongoing
 
-- [ ] Monitor logs: `storage/logs/laravel.log`, Apache logs, Horizon log
-- [ ] `composer update` / `npm audit` on a schedule in a staging environment first
-
----
-
-## Reference: `.env` variables
-
-| Variable | Description |
-|----------|-------------|
-| **Application** | |
-| `APP_NAME` | Shown in UI / mail (default ATLAAS) |
-| `APP_ENV` | `local`, `staging`, `production` |
-| `APP_KEY` | Encryption key; **required**; from `key:generate` |
-| `APP_DEBUG` | `false` in production |
-| `APP_URL` | Public base URL with scheme (`https://...`) |
-| **Database** | |
-| `DB_CONNECTION` | `mysql`, `pgsql`, or `sqlite` |
-| `DB_HOST` | Database host |
-| `DB_PORT` | Port (3306 for MySQL) |
-| `DB_DATABASE` | Database name |
-| `DB_USERNAME` | DB user |
-| `DB_PASSWORD` | DB password |
-| **Session / cache** | |
-| `SESSION_DRIVER` | `database`, `redis`, `file` |
-| `SESSION_LIFETIME` | Minutes |
-| `SESSION_ENCRYPT` | `true` recommended with HTTPS |
-| `SESSION_SECURE_COOKIE` | `true` when HTTPS-only |
-| `CACHE_STORE` | `database`, `redis`, `file` |
-| **Broadcasting / Reverb (Compass)** | |
-| `BROADCAST_CONNECTION` | `reverb` for live Compass; `log`, `null`, or omitted default otherwise |
-| `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Reverb application credentials |
-| `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | Client-facing WebSocket endpoint |
-| `REVERB_SERVER_HOST`, `REVERB_SERVER_PORT` | Listen address for `php artisan reverb:start` |
-| `VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT`, `VITE_REVERB_SCHEME` | Frontend Echo config (build-time) |
-| **Queue / Redis** | |
-| `QUEUE_CONNECTION` | `redis` for Horizon |
-| `REDIS_CLIENT` | `predis` (this project includes Predis) or `phpredis` if ext installed |
-| `REDIS_HOST` | Usually `127.0.0.1` |
-| `REDIS_PASSWORD` | If Redis auth enabled |
-| `REDIS_PORT` | Default `6379` |
-| **Mail** | |
-| `MAIL_MAILER` | `smtp`, `log` (dev only), etc. |
-| `MAIL_HOST`, `MAIL_PORT` | SMTP server and port (587 TLS / 465 SSL typical) |
-| `MAIL_USERNAME` | Mailbox address used to authenticate to SMTP |
-| `MAIL_PASSWORD` | App password or SMTP password |
-| `MAIL_SCHEME` | `smtp` (STARTTLS) or `smtps` (implicit SSL); overrides encryption below if set |
-| `MAIL_ENCRYPTION` | `tls`, `starttls`, `ssl`, or `smtps` if you prefer not to set `MAIL_SCHEME` |
-| `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | From header |
-| `MAIL_TIMEOUT` | Optional SMTP timeout (seconds) |
-| `MAIL_URL` | Optional full SMTP DSN (overrides pieces above if used) |
-| **Google OAuth** | |
-| `GOOGLE_CLIENT_ID` | OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | OAuth secret |
-| `GOOGLE_REDIRECT_URI` | Must match Google Console and route `/auth/google/callback` |
-| **LLM (OpenAI-compatible)** | |
-| `OPENAI_API_KEY` | Provider API key |
-| `OPENAI_BASE_URL` | API base URL (often ends with `/v1`) |
-| `OPENAI_MODEL` | Model name |
-| `OPENAI_ORGANIZATION` | Optional (OpenAI) |
-| `OPENAI_PROJECT` | Optional (OpenAI) |
-| `OPENAI_REQUEST_TIMEOUT` | Optional timeout seconds |
-| **Frontend** | |
-| `VITE_APP_NAME` | Usually `${APP_NAME}` |
-| `VITE_REVERB_*` | See **Broadcasting / Reverb** above |
-| **Scout / Discover (Phase 7)** | |
-| `SCOUT_DRIVER` | `meilisearch` with Meilisearch running, or `collection` / `null` for simpler local setups (see [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7)) |
-| `SCOUT_QUEUE` | `true` to index via the queue |
-| `MEILISEARCH_HOST` | Meilisearch HTTP base URL |
-| `MEILISEARCH_KEY` | Meilisearch API key (if configured) |
+- [ ] Monitor `storage/logs/laravel.log`, Apache, Horizon log
+- [ ] Test dependency updates in staging first
 
 ---
 
@@ -796,40 +604,17 @@ After `php artisan db:seed` (includes `TestDataSeeder`):
 
 ---
 
-## Implementation phases (1-7)
-
-**Status:** Phases **1 through 7** are **implemented in this repository** (application code and docs through Discover). **Phase 8** (Docker Compose, multi-container deployment as described in `phases/Phases6_7_8.md`) is **not** implemented here yet (no `docker-compose.yml` at the project root).
-
-Detailed step-by-step instructions and **manual acceptance checklists** live under **`/phases`**:
-
-| Phase | Doc (primary) | What it covers |
-|-------|----------------|----------------|
-| **1** | `phases/Phase1_Scaffold_Auth.md` | Laravel + Inertia scaffold, districts/schools/users, Spatie roles, email + Google OAuth login, teacher/student portals entry, UUID users |
-| **2** | `phases/Phase2_Classrooms_Spaces.md` | Classrooms, roster by email, learning spaces, join codes, student dashboard and join flows, global `district` scope on tenant models |
-| **3** | `phases/Phase3_AI_Chat.md` | OpenAI-compatible client, student sessions, SSE streaming chat, safety filter, message limits, privacy redaction, `/test-llm` (local admin check) |
-| **4** | `phases/Phase4_Queues_Alerts.md` | Redis queues, **Laravel Horizon**, safety alert jobs + email, encrypted alert payload, session summary jobs, `/teach/alerts` |
-| **5** | `phases/Phase5_Compass_View.md` | **Laravel Reverb**, broadcasting, live **Compass View** (`/teach/compass`), session detail, inject/end session, channel auth in `routes/channels.php` |
-| **6–7** | `phases/Phases6_7_8.md` | **Teacher Toolkit** (`/teach/toolkit`, seven built-in tools, SSE tool runs), **Discover** (library items, Scout, import, ratings, district approve) |
-
-**Phase 5 (Compass View + Reverb)** — enable with [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5): `BROADCAST_CONNECTION=reverb`, Reverb process, `npm run build` with `VITE_REVERB_*` set.
-
-**Phase 6 (Teacher Toolkit)** — `/teach/toolkit`: schema-driven forms and **SSE streaming** for seven tools. Seed **`BuiltInToolsSeeder`** (via `DatabaseSeeder` or `php artisan db:seed --class=BuiltInToolsSeeder`). Requires **`OPENAI_*`** (or compatible endpoint).
-
-**Phase 7 (Discover library)** — **`space_library_items`**, **`SpaceLibraryItem`**, **Laravel Scout** on **`LearningSpace`**, **`/teach/discover`** (debounced search, subject/grade/sort filters, default sort by downloads, **Add to my spaces** import, ratings, **District approved** badge, **district_admin** approve action). Publish from space detail: **Share to Discover**, tags, grade band, listing description. See [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7) for Meilisearch and `scout:import`.
-
----
-
-## Verifying phases (1-7)
-
-Implementation is done; **full “phase complete” verification** means working through the **checkbox lists** at the end of each file in **`/phases`** (browser flows, often Horizon, Reverb + two browsers, LLM, and—with `SCOUT_DRIVER=meilisearch`—Meilisearch).
-
-**Quick automated check:** from the project root, run:
+## Testing and smoke checks
 
 ```bash
 php artisan test
 ```
 
-**Local dev stack** (typical): `php artisan serve`, `npm run dev`, `php artisan horizon` when testing queues, `php artisan reverb:start` when testing Compass live updates, Redis if using `QUEUE_CONNECTION=redis`.
+Uses SQLite in memory (`phpunit.xml`); `APP_KEY` is set for the test harness. Some environments warn if `.env` is missing; tests should still pass.
+
+**Manual QA:** Exercise login, teacher and student flows, queues (with Horizon), optional Reverb (two browsers on Compass), optional Meilisearch (Discover keyword search), and mail (`MAIL_MAILER=log`).
+
+The **`phases/`** directory in the repo contains detailed build notes and checkbox-style acceptance lists used during development; you can use them as an extended QA script—they are not required reading for a standard deploy if you follow this README.
 
 ---
 
