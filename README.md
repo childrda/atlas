@@ -14,7 +14,7 @@
 
 **Augmented Teaching & Learning Assistive AI System**
 
-ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching and learning: multi-tenant structure (district → school → user), role-based access (district admin, school admin, teacher, student), separate teacher and student portals, the ATLAAS assistive AI in student sessions, queued safety alerts, session summaries, and **Compass View** (live teacher dashboard over **Laravel Reverb** WebSockets when enabled).
+ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching and learning: multi-tenant structure (district → school → user), role-based access (district admin, school admin, teacher, student), separate teacher and student portals, the ATLAAS assistive AI in student sessions, queued safety alerts, session summaries, **Compass View** (live teacher dashboard over **Laravel Reverb** WebSockets when enabled), and **Discover** (teacher-shared space library with optional **Meilisearch** via **Laravel Scout**).
 
 ---
 
@@ -31,14 +31,15 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 9. [TLS (HTTPS) with Let’s Encrypt](#tls-https-with-lets-encrypt)
 10. [Queues and Laravel Horizon](#queues-and-laravel-horizon)
 11. [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5)
-12. [Task scheduler (cron)](#task-scheduler-cron)
-13. [Google Workspace sign-in (OAuth)](#google-workspace-sign-in-oauth)
-14. [LLM provider (OpenAI, local, Azure, Anthropic via gateway)](#llm-provider-openai-local-azure-anthropic-via-gateway)
-15. [Production hardening checklist](#production-hardening-checklist)
-16. [Reference: `.env` variables](#reference-env-variables)
-17. [Demo accounts (after seeding)](#demo-accounts-after-seeding)
-18. [Implementation phases](#implementation-phases)
-19. [License](#license)
+12. [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7)
+13. [Task scheduler (cron)](#task-scheduler-cron)
+14. [Google Workspace sign-in (OAuth)](#google-workspace-sign-in-oauth)
+15. [LLM provider (OpenAI, local, Azure, Anthropic via gateway)](#llm-provider-openai-local-azure-anthropic-via-gateway)
+16. [Production hardening checklist](#production-hardening-checklist)
+17. [Reference: `.env` variables](#reference-env-variables)
+18. [Demo accounts (after seeding)](#demo-accounts-after-seeding)
+19. [Implementation phases](#implementation-phases)
+20. [License](#license)
 
 ---
 
@@ -55,6 +56,7 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 | **Redis** | Queues (`QUEUE_CONNECTION=redis`) and Horizon metadata |
 | **Laravel Horizon** | Supervises queue workers (requires `ext-pcntl` and `ext-posix` on Linux) |
 | **Laravel Reverb** | Optional WebSocket server for **Compass View** live updates (`php artisan reverb:start`); uses the same Redis host as queues when scaling is enabled |
+| **Meilisearch** | Optional search engine for **Discover** when `SCOUT_DRIVER=meilisearch`; without it, Discover still lists and filters spaces and uses SQL search fallback |
 
 Optional but typical for production: **Postfix** or SMTP relay for mail, **Certbot** for TLS certificates, **UFW** or cloud firewall rules.
 
@@ -467,6 +469,52 @@ If `VITE_REVERB_APP_KEY` is unset, the UI still loads Compass from the server; *
 
 ---
 
+## Laravel Scout and Discover (Phase 7)
+
+**Discover** (`/teach/discover`) is a cross-district catalog of learning spaces teachers have chosen to share. It uses **`space_library_items`** for listing metadata (title, description, tags, grade band, ratings, download counts) and **Laravel Scout** on **`LearningSpace`** when you use the **Meilisearch** driver for full-text search.
+
+### Environment variables
+
+Copy the Scout / Meilisearch block from `.env.example`. Typical setups:
+
+| Setting | Purpose |
+|--------|---------|
+| `SCOUT_DRIVER` | `meilisearch` in production (with Meilisearch running). `collection` is fine for local dev; Discover still works using SQL `LIKE` on library rows when the driver is not Meilisearch. |
+| `SCOUT_QUEUE` | `true` to index asynchronously via your queue workers (recommended at scale). |
+| `MEILISEARCH_HOST` | Base URL of the Meilisearch instance (e.g. `http://127.0.0.1:7700` or `http://meilisearch:7700` in Docker). |
+| `MEILISEARCH_KEY` | API key if your Meilisearch instance requires one (`MEILI_MASTER_KEY` in Docker). |
+
+After changing Scout or Meilisearch settings: `php artisan config:cache`.
+
+### Run Meilisearch (Docker example)
+
+```bash
+docker run -d -p 7700:7700 \
+  -e MEILI_MASTER_KEY=your-master-key \
+  getmeili/meilisearch:v1.7
+```
+
+Set `MEILISEARCH_HOST` and `MEILISEARCH_KEY` in `.env` to match, then `SCOUT_DRIVER=meilisearch`.
+
+### Index existing spaces
+
+After migrations and Meilisearch are available:
+
+```bash
+php artisan scout:import "App\Models\LearningSpace"
+```
+
+Only spaces that are **published**, **public** (shared to Discover), **not archived**, and have a **published library row** are indexed (`shouldBeSearchable()`).
+
+### Teacher workflow
+
+- **Publish** a space from the space detail page; optionally enable **Share to Discover** and set grade band, tags, and listing description.
+- **Discover** in the teacher sidebar: search and filter, **Import** copies a space into your account (new join code), **Rate** updates the rolling average.
+
+If Meilisearch is unreachable, publishing still succeeds; indexing errors are reported to the log and do not block the HTTP response.
+
+---
+
 ## Task scheduler (cron)
 
 Laravel’s scheduler runs maintenance and scheduled jobs. Add to `www-data` crontab (or the user that runs PHP):
@@ -721,6 +769,11 @@ Use this as a baseline before exposing the app to the internet.
 | **Frontend** | |
 | `VITE_APP_NAME` | Usually `${APP_NAME}` |
 | `VITE_REVERB_*` | See **Broadcasting / Reverb** above |
+| **Scout / Discover (Phase 7)** | |
+| `SCOUT_DRIVER` | `meilisearch` with Meilisearch running, or `collection` / `null` for simpler local setups (see [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7)) |
+| `SCOUT_QUEUE` | `true` to index via the queue |
+| `MEILISEARCH_HOST` | Meilisearch HTTP base URL |
+| `MEILISEARCH_KEY` | Meilisearch API key (if configured) |
 
 ---
 
@@ -745,6 +798,8 @@ See the `/phases` directory for staged build instructions and feature checklists
 **Phase 5 (Compass View + Reverb)** is implemented in this repo: broadcasting events, `routes/channels.php`, teacher routes under `/teach/compass`, and the Echo bootstrap in `resources/js/bootstrap.ts`. Use the section [Laravel Reverb and Compass View (Phase 5)](#laravel-reverb-and-compass-view-phase-5) above to enable it in each environment.
 
 **Phase 6 (Teacher Toolkit)** is implemented: `/teach/toolkit` lists **seven built-in AI tools** (lesson planner, rubric builder, assessment generator, differentiation helper, parent comms drafter, feedback generator, IEP accommodation suggester). Each tool uses a schema-driven form and **SSE streaming** output (same pattern as student chat). Run migrations and seed **`BuiltInToolsSeeder`** (included in `DatabaseSeeder`, or `php artisan db:seed --class=BuiltInToolsSeeder`) so tools exist. Requires a working **LLM** (`OPENAI_*` in `.env`) like the student chat feature.
+
+**Phase 7 (Discover library)** is implemented: **`space_library_items`** table, **`SpaceLibraryItem`** model, **Laravel Scout** on **`LearningSpace`**, teacher routes **`/teach/discover`** (search, filters, sort, import, ratings), publish flow with **Share to Discover** on the space detail page, and sidebar **Discover**. Use [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7) for Meilisearch, `scout:import`, and env vars. The phase doc also mentions a **District approved** badge on cards; the column exists but the UI badge is not wired yet.
 
 ---
 
