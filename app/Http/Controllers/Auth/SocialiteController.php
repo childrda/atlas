@@ -10,13 +10,20 @@ use Laravel\Socialite\Facades\Socialite;
 
 class SocialiteController extends Controller
 {
+    /** @var list<string> */
+    private const ALLOWED_PROVIDERS = ['google'];
+
     public function redirect(string $provider): RedirectResponse
     {
+        abort_unless(in_array($provider, self::ALLOWED_PROVIDERS, true), 404);
+
         return Socialite::driver($provider)->redirect();
     }
 
     public function callback(string $provider): RedirectResponse
     {
+        abort_unless(in_array($provider, self::ALLOWED_PROVIDERS, true), 404);
+
         // stateless() avoids session/state mismatch errors behind load balancers
         // or reverse proxies — safe to use now, required in production
         $socialUser = Socialite::driver($provider)->stateless()->user();

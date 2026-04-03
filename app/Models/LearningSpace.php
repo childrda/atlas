@@ -11,6 +11,18 @@ class LearningSpace extends BaseModel
 {
     use SoftDeletes;
 
+    /**
+     * Not sent to student browsers (Inertia). Session chat loads a minimal space column list.
+     *
+     * @var list<string>
+     */
+    public const HIDDEN_FROM_STUDENT_CLIENT = [
+        'system_prompt',
+        'restrictions',
+        'allowed_tools',
+        'join_code',
+    ];
+
     protected $fillable = [
         'district_id', 'teacher_id', 'classroom_id', 'title', 'description',
         'subject', 'grade_level', 'cover_image', 'system_prompt', 'goals',

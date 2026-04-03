@@ -22,7 +22,8 @@ class StudentSpaceController extends Controller
             ->where('is_archived', false)
             ->whereHas('classroom.students', fn ($q) => $q->where('users.id', auth()->id()))
             ->with('teacher:id,name')
-            ->get();
+            ->get()
+            ->each->makeHidden(LearningSpace::HIDDEN_FROM_STUDENT_CLIENT);
 
         return Inertia::render('Student/Spaces/Index', ['spaces' => $spaces]);
     }
@@ -30,6 +31,8 @@ class StudentSpaceController extends Controller
     public function show(Request $request, LearningSpace $space): Response
     {
         $this->authorizeStudentLearningSpace($request->user(), $space);
+
+        $space->makeHidden(LearningSpace::HIDDEN_FROM_STUDENT_CLIENT);
 
         $activeSession = StudentSession::where('student_id', $request->user()->id)
             ->where('space_id', $space->id)

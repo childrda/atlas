@@ -18,7 +18,8 @@ class StudentDashboardController extends Controller
             ->where('is_archived', false)
             ->whereHas('classroom.students', fn ($q) => $q->where('users.id', auth()->id()))
             ->with('teacher:id,name')
-            ->get();
+            ->get()
+            ->each->makeHidden(LearningSpace::HIDDEN_FROM_STUDENT_CLIENT);
 
         $completedSessions = StudentSession::where('student_id', auth()->id())
             ->where('status', 'completed')
