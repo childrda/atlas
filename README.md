@@ -509,7 +509,8 @@ Only spaces that are **published**, **public** (shared to Discover), **not archi
 ### Teacher workflow
 
 - **Publish** a space from the space detail page; optionally enable **Share to Discover** and set grade band, tags, and listing description.
-- **Discover** in the teacher sidebar: search and filter, **Import** copies a space into your account (new join code), **Rate** updates the rolling average.
+- **Discover** in the teacher sidebar: **search** (debounced; query string updates via Inertia), **subject** / **grade band** / **sort** filters, **Add to my spaces** to copy a listing into your account (new join code), and **rate** (1–5) to update the rolling average.
+- **District admins** see **District approve** on listings whose space belongs to their district; approved items show a **District approved** badge (one-way for now).
 
 If Meilisearch is unreachable, publishing still succeeds; indexing errors are reported to the log and do not block the HTTP response.
 
@@ -799,7 +800,7 @@ See the `/phases` directory for staged build instructions and feature checklists
 
 **Phase 6 (Teacher Toolkit)** is implemented: `/teach/toolkit` lists **seven built-in AI tools** (lesson planner, rubric builder, assessment generator, differentiation helper, parent comms drafter, feedback generator, IEP accommodation suggester). Each tool uses a schema-driven form and **SSE streaming** output (same pattern as student chat). Run migrations and seed **`BuiltInToolsSeeder`** (included in `DatabaseSeeder`, or `php artisan db:seed --class=BuiltInToolsSeeder`) so tools exist. Requires a working **LLM** (`OPENAI_*` in `.env`) like the student chat feature.
 
-**Phase 7 (Discover library)** is implemented: **`space_library_items`** table, **`SpaceLibraryItem`** model, **Laravel Scout** on **`LearningSpace`**, teacher routes **`/teach/discover`** (search, filters, sort, import, ratings), publish flow with **Share to Discover** on the space detail page, and sidebar **Discover**. Use [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7) for Meilisearch, `scout:import`, and env vars. The phase doc also mentions a **District approved** badge on cards; the column exists but the UI badge is not wired yet.
+**Phase 7 (Discover library)** is implemented: **`space_library_items`** table, **`SpaceLibraryItem`** model, **Laravel Scout** on **`LearningSpace`**, teacher routes **`/teach/discover`** (debounced search, filters, default sort by popularity, import, ratings, district-admin approve + badge), publish flow with **Share to Discover** on the space detail page, and sidebar **Discover**. Use [Laravel Scout and Discover (Phase 7)](#laravel-scout-and-discover-phase-7) for Meilisearch, `scout:import`, and env vars.
 
 ---
 

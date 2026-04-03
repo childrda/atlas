@@ -51,6 +51,7 @@ Route::middleware(['auth', 'role:teacher,school_admin,district_admin'])
 
         Route::get('discover', [DiscoverController::class, 'index'])->name('discover.index');
         Route::post('discover/{libraryItem}/import', [DiscoverController::class, 'import'])->name('discover.import');
+        Route::post('discover/{libraryItem}/approve', [DiscoverController::class, 'approve'])->name('discover.approve');
         Route::post('discover/{libraryItem}/rate', [DiscoverController::class, 'rate'])->name('discover.rate');
 
         Route::get('classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');

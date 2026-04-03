@@ -43,11 +43,13 @@ export interface SpaceLibraryItem {
     download_count: number;
     rating: number;
     rating_count: number;
+    district_approved: boolean;
     published_at: string | null;
 }
 
 export interface LearningSpace {
     id: string;
+    district_id?: string;
     title: string;
     description: string | null;
     subject: string | null;

@@ -21,7 +21,10 @@ class DiscoverController extends Controller
         $qText = (string) $request->input('q', '');
         $subject = (string) $request->input('subject', '');
         $gradeBand = (string) $request->input('grade_band', '');
-        $sort = (string) $request->input('sort', 'newest');
+        $sort = (string) $request->input('sort', 'popular');
+        if ($sort === 'rated') {
+            $sort = 'rating';
+        }
 
         $builder = SpaceLibraryItem::query()
             ->whereNotNull('published_at');
@@ -43,9 +46,9 @@ class DiscoverController extends Controller
         }
 
         match ($sort) {
-            'popular' => $builder->orderByDesc('download_count'),
-            'rated' => $builder->orderByDesc('rating')->orderByDesc('rating_count'),
-            default => $builder->orderByDesc('published_at'),
+            'newest' => $builder->orderByDesc('published_at'),
+            'rating' => $builder->orderByDesc('rating')->orderByDesc('rating_count'),
+            default => $builder->orderByDesc('download_count'),
         };
 
         $items = $builder
@@ -142,6 +145,26 @@ class DiscoverController extends Controller
 
         return redirect()->route('teacher.spaces.edit', $copy)
             ->with('success', 'Space imported to your account. Review and publish when ready.');
+    }
+
+    public function approve(Request $request, SpaceLibraryItem $libraryItem): RedirectResponse
+    {
+        if ($libraryItem->published_at === null) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        abort_unless($user->hasRole('district_admin'), 403);
+
+        $space = LearningSpace::withoutGlobalScope('district')
+            ->whereKey($libraryItem->space_id)
+            ->firstOrFail();
+
+        abort_unless($space->district_id === $user->district_id, 403);
+
+        $libraryItem->update(['district_approved' => true]);
+
+        return back()->with('success', 'Listing marked district-approved.');
     }
 
     public function rate(Request $request, SpaceLibraryItem $libraryItem): JsonResponse

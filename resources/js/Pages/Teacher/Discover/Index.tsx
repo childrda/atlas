@@ -1,7 +1,7 @@
 import TeacherLayout from '@/Layouts/TeacherLayout';
 import type { LearningSpace, SpaceLibraryItem, User } from '@/types/models';
-import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Paginated<T> {
     data: T[];
@@ -11,6 +11,35 @@ interface Paginated<T> {
 type DiscoverRow = SpaceLibraryItem & {
     space: (LearningSpace & { teacher?: { id: string; name: string; school?: { name: string } | null } }) | null;
 };
+
+const DISCOVER_PATH = '/teach/discover';
+const SEARCH_DEBOUNCE_MS = 350;
+
+function StarRating({ rating, count }: { rating: number; count: number }) {
+    const rounded = Math.min(5, Math.max(0, Math.round(Number(rating))));
+    return (
+        <div className="flex items-center gap-0.5" aria-label={`Rating ${Number(rating).toFixed(1)} out of 5, ${count} ratings`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <span key={star} className={star <= rounded ? 'text-amber-400' : 'text-gray-200'} aria-hidden>
+                    ★
+                </span>
+            ))}
+            <span className="ml-1 text-xs text-gray-400">({count})</span>
+        </div>
+    );
+}
+
+function visitDiscover(
+    params: { q: string; subject: string; grade_band: string; sort: string },
+    opts?: { preserveScroll?: boolean },
+) {
+    router.get(DISCOVER_PATH, params, {
+        preserveState: true,
+        preserveScroll: opts?.preserveScroll ?? true,
+        replace: true,
+        only: ['items', 'filters', 'subjects', 'gradeBands'],
+    });
+}
 
 export default function DiscoverIndex() {
     const page = usePage();
@@ -24,25 +53,34 @@ export default function DiscoverIndex() {
         flash: { success?: string; error?: string };
     };
 
-    const form = useForm({
-        q: filters.q,
-        subject: filters.subject,
-        grade_band: filters.grade_band,
-        sort: filters.sort,
-    });
+    const [qInput, setQInput] = useState(filters.q);
+    const filtersRef = useRef(filters);
+    filtersRef.current = filters;
+
+    useEffect(() => {
+        setQInput(filters.q);
+    }, [filters.q]);
+
+    useEffect(() => {
+        const t = window.setTimeout(() => {
+            const f = filtersRef.current;
+            if (qInput === f.q) {
+                return;
+            }
+            visitDiscover({
+                q: qInput,
+                subject: f.subject,
+                grade_band: f.grade_band,
+                sort: f.sort,
+            });
+        }, SEARCH_DEBOUNCE_MS);
+        return () => window.clearTimeout(t);
+    }, [qInput]);
 
     const [ratings, setRatings] = useState<Record<string, { rating: number; rating_count: number }>>({});
 
-    function applyFilters() {
-        form.get('/teach/discover', {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    }
-
     async function submitRating(itemId: string, rating: number) {
-        const res = await fetch(`/teach/discover/${itemId}/rate`, {
+        const res = await fetch(`${DISCOVER_PATH}/${itemId}/rate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -56,6 +94,16 @@ export default function DiscoverIndex() {
         setRatings((prev) => ({ ...prev, [itemId]: data }));
     }
 
+    function applyAllFilters() {
+        const f = filtersRef.current;
+        visitDiscover({
+            q: qInput,
+            subject: f.subject,
+            grade_band: f.grade_band,
+            sort: f.sort,
+        });
+    }
+
     return (
         <TeacherLayout>
             <div className="p-8">
@@ -64,7 +112,7 @@ export default function DiscoverIndex() {
                 </Link>
                 <h1 className="mt-4 text-2xl font-medium text-gray-900">Discover</h1>
                 <p className="mt-1 text-sm text-gray-500">
-                    Browse spaces shared by other teachers. Import a copy to your account and customize it.
+                    Browse spaces shared by other teachers. Add a copy to your spaces and customize it.
                 </p>
 
                 {flash.success && (
@@ -82,12 +130,18 @@ export default function DiscoverIndex() {
                         <input
                             id="discover-q"
                             type="search"
-                            value={form.data.q}
-                            onChange={(e) => form.setData('q', e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), applyFilters())}
+                            value={qInput}
+                            onChange={(e) => setQInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    applyAllFilters();
+                                }
+                            }}
                             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                             placeholder="Title, description, subject…"
                         />
+                        <p className="mt-1 text-[11px] text-gray-400">Results update shortly after you stop typing.</p>
                     </div>
                     <div>
                         <label htmlFor="discover-subject" className="block text-xs font-medium text-gray-600">
@@ -95,8 +149,15 @@ export default function DiscoverIndex() {
                         </label>
                         <select
                             id="discover-subject"
-                            value={form.data.subject}
-                            onChange={(e) => form.setData('subject', e.target.value)}
+                            value={filters.subject}
+                            onChange={(e) =>
+                                visitDiscover({
+                                    q: qInput,
+                                    subject: e.target.value,
+                                    grade_band: filters.grade_band,
+                                    sort: filters.sort,
+                                })
+                            }
                             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm lg:w-44"
                         >
                             <option value="">All</option>
@@ -113,8 +174,15 @@ export default function DiscoverIndex() {
                         </label>
                         <select
                             id="discover-grade"
-                            value={form.data.grade_band}
-                            onChange={(e) => form.setData('grade_band', e.target.value)}
+                            value={filters.grade_band}
+                            onChange={(e) =>
+                                visitDiscover({
+                                    q: qInput,
+                                    subject: filters.subject,
+                                    grade_band: e.target.value,
+                                    sort: filters.sort,
+                                })
+                            }
                             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm lg:w-36"
                         >
                             <option value="">All</option>
@@ -131,18 +199,25 @@ export default function DiscoverIndex() {
                         </label>
                         <select
                             id="discover-sort"
-                            value={form.data.sort}
-                            onChange={(e) => form.setData('sort', e.target.value)}
-                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm lg:w-40"
+                            value={filters.sort === 'rated' ? 'rating' : filters.sort}
+                            onChange={(e) =>
+                                visitDiscover({
+                                    q: qInput,
+                                    subject: filters.subject,
+                                    grade_band: filters.grade_band,
+                                    sort: e.target.value,
+                                })
+                            }
+                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm lg:w-44"
                         >
-                            <option value="newest">Newest</option>
                             <option value="popular">Most downloaded</option>
-                            <option value="rated">Highest rated</option>
+                            <option value="newest">Newest</option>
+                            <option value="rating">Highest rated</option>
                         </select>
                     </div>
                     <button
                         type="button"
-                        onClick={() => applyFilters()}
+                        onClick={() => applyAllFilters()}
                         className="rounded-md px-4 py-2 text-sm font-medium text-white"
                         style={{ backgroundColor: '#1E3A5F' }}
                     >
@@ -157,13 +232,24 @@ export default function DiscoverIndex() {
                         const r = ratings[item.id];
                         const rating = r?.rating ?? item.rating;
                         const ratingCount = r?.rating_count ?? item.rating_count;
+                        const canDistrictApprove =
+                            auth.user.roles.includes('district_admin') &&
+                            item.space?.district_id === auth.user.district.id &&
+                            !item.district_approved;
 
                         return (
                             <article
                                 key={item.id}
                                 className="flex flex-col rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
                             >
-                                <h2 className="font-medium text-gray-900">{item.title}</h2>
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <h2 className="font-medium text-gray-900">{item.title}</h2>
+                                    {item.district_approved && (
+                                        <span className="shrink-0 rounded bg-[#1E3A5F]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E3A5F]">
+                                            District approved
+                                        </span>
+                                    )}
+                                </div>
                                 <p className="mt-1 text-xs text-gray-500">{schoolName}</p>
                                 <p className="mt-2 max-h-16 overflow-hidden text-sm text-gray-600">
                                     {item.description || 'No description.'}
@@ -183,9 +269,9 @@ export default function DiscoverIndex() {
                                         ))}
                                     </div>
                                 )}
-                                <p className="mt-3 text-xs text-gray-500">
-                                    {item.download_count} imports · ★ {Number(rating).toFixed(1)} ({ratingCount})
-                                </p>
+                                <div className="mt-3">
+                                    <StarRating rating={Number(rating)} count={ratingCount} />
+                                </div>
                                 <div className="mt-2 flex flex-wrap gap-1">
                                     {[1, 2, 3, 4, 5].map((n) => (
                                         <button
@@ -199,22 +285,36 @@ export default function DiscoverIndex() {
                                         </button>
                                     ))}
                                 </div>
+                                <p className="mt-2 text-xs text-gray-500">{item.download_count} imports</p>
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {!mine ? (
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (confirm('Import a copy of this space into your account?')) {
-                                                    router.post(`/teach/discover/${item.id}/import`);
+                                                if (confirm('Add a copy of this space to your account?')) {
+                                                    router.post(`${DISCOVER_PATH}/${item.id}/import`);
                                                 }
                                             }}
                                             className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
                                             style={{ backgroundColor: '#F5A623' }}
                                         >
-                                            Import
+                                            Add to my spaces
                                         </button>
                                     ) : (
                                         <span className="text-xs text-gray-500">Your space</span>
+                                    )}
+                                    {canDistrictApprove && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (confirm('Mark this listing as district-approved for Discover?')) {
+                                                    router.post(`${DISCOVER_PATH}/${item.id}/approve`);
+                                                }
+                                            }}
+                                            className="rounded-md border border-[#1E3A5F] px-3 py-1.5 text-sm text-[#1E3A5F] hover:bg-[#1E3A5F]/5"
+                                        >
+                                            District approve
+                                        </button>
                                     )}
                                 </div>
                             </article>
