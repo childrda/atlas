@@ -6,25 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\LearningSpace;
 use App\Models\SafetyAlert;
 use App\Models\StudentSession;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TeacherDashboardController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $teacherId = auth()->id();
+        $teacherId = (string) $request->user()->id;
 
-        $activeSpaces = LearningSpace::query()
-            ->where('teacher_id', $teacherId)
-            ->where('is_archived', false)
-            ->count();
+        $activeSpaces = LearningSpace::forTeacherPortal($teacherId)->count();
 
         $activeStudents = (int) StudentSession::query()
             ->where('status', 'active')
-            ->whereHas('space', function ($q) use ($teacherId) {
-                $q->where('teacher_id', $teacherId)->where('is_archived', false);
-            })
+            ->whereHas('space', fn ($q) => $q->forTeacherPortal($teacherId))
             ->distinct()
             ->count('student_id');
 
@@ -34,7 +30,10 @@ class TeacherDashboardController extends Controller
             ->count();
 
         return Inertia::render('Teacher/Dashboard', [
-            'user' => auth()->user()->load('school', 'district'),
+            'user' => $request->user()->load('school', 'district'),
+            'activeSpacesCount' => $activeSpaces,
+            'activeStudentsCount' => $activeStudents,
+            'openAlertsCount' => $openAlerts,
             'stats' => [
                 'active_spaces' => $activeSpaces,
                 'active_students' => $activeStudents,

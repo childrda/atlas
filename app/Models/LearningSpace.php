@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Helpers\JoinCode;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -65,6 +66,17 @@ class LearningSpace extends BaseModel
                 $query->where('learning_spaces.district_id', auth()->user()->district_id);
             }
         });
+    }
+
+    /**
+     * Teacher portal list: spaces owned by the teacher and not archived (district global scope still applies).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForTeacherPortal(Builder $query, string $teacherId): Builder
+    {
+        return $query->where('teacher_id', $teacherId)->where('is_archived', false);
     }
 
     public function district(): BelongsTo

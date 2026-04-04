@@ -17,8 +17,7 @@ class SpaceController extends Controller
 {
     public function index(): Response
     {
-        $spaces = LearningSpace::where('teacher_id', auth()->id())
-            ->where('is_archived', false)
+        $spaces = LearningSpace::forTeacherPortal(auth()->id())
             ->withCount('sessions')
             ->latest()
             ->paginate(20);

@@ -2,15 +2,23 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import TeacherLayout from '@/Layouts/TeacherLayout';
 import { usePage } from '@inertiajs/react';
 
-interface DashboardStats {
-    active_spaces: number;
-    active_students: number;
-    open_alerts: number;
-}
+type DashboardProps = {
+    activeSpacesCount?: number;
+    activeStudentsCount?: number;
+    openAlertsCount?: number;
+    stats?: {
+        active_spaces?: number;
+        active_students?: number;
+        open_alerts?: number;
+    };
+};
 
 export default function TeacherDashboard() {
     const user = useCurrentUser();
-    const { stats } = usePage().props as { stats: DashboardStats };
+    const p = usePage().props as DashboardProps;
+    const activeSpaces = p.activeSpacesCount ?? p.stats?.active_spaces ?? 0;
+    const activeStudents = p.activeStudentsCount ?? p.stats?.active_students ?? 0;
+    const openAlerts = p.openAlertsCount ?? p.stats?.open_alerts ?? 0;
 
     return (
         <TeacherLayout>
@@ -20,9 +28,9 @@ export default function TeacherDashboard() {
 
                 <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
                     {[
-                        { label: 'Active Spaces', value: stats.active_spaces },
-                        { label: 'Active Students', value: stats.active_students },
-                        { label: 'Open Alerts', value: stats.open_alerts },
+                        { label: 'Active Spaces', value: activeSpaces },
+                        { label: 'Active Students', value: activeStudents },
+                        { label: 'Open Alerts', value: openAlerts },
                     ].map((stat) => (
                         <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-6">
                             <p className="text-sm text-gray-500">{stat.label}</p>
