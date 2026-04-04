@@ -52,7 +52,7 @@ ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching a
 | **Composer** | PHP dependency manager |
 | **Node.js 20+** and **npm** | Builds frontend assets (Vite/React); not needed on the server after `npm run build` if you build elsewhere |
 | **MySQL or MariaDB** | Primary database (recommended for production) |
-| **Redis** | Queues (`QUEUE_CONNECTION=redis`) and Horizon metadata |
+| **Redis** | Queues (`QUEUE_CONNECTION=redis`), **Horizon**, and **`CACHE_STORE=redis`** (recommended for rich-response image caching) |
 | **Laravel Horizon** | Supervises queue workers (requires `ext-pcntl` and `ext-posix` on Linux) |
 | **Laravel Reverb** | Optional WebSocket server for Compass View live updates (`php artisan reverb:start`); uses Redis when Reverb scaling is enabled |
 | **Meilisearch** | Optional search engine for Discover when `SCOUT_DRIVER=meilisearch`; without it, Discover still lists, filters, and searches via SQL |
@@ -270,7 +270,7 @@ The canonical list in the repo is **`.env.example`**; this section explains what
 | `DB_DATABASE` | Database name. |
 | `DB_USERNAME` / `DB_PASSWORD` | Credentials (use a least-privilege user in production). |
 
-SQLite (`DB_CONNECTION=sqlite` with `DB_DATABASE` path) is fine for local experimentation; the default `.env.example` uses SQLite for quick starts.
+The repo **`.env.example`** defaults to **MySQL** (`DB_DATABASE=atlaas`, user `root`, empty password) so it matches typical XAMPP/WAMP installs—create the `atlaas` database first. **SQLite** (`DB_CONNECTION=sqlite` with an absolute `DB_DATABASE` path) is fine for experimentation; see the commented block in `.env.example`.
 
 ### Sessions and cookies
 
@@ -286,7 +286,7 @@ SQLite (`DB_CONNECTION=sqlite` with `DB_DATABASE` path) is fine for local experi
 
 | Variable | What it does |
 |----------|----------------|
-| `CACHE_STORE` | `database`, `redis`, or `file`. Use `redis` if you want cache in memory across workers. |
+| `CACHE_STORE` | **`redis`** in **`.env.example`** (recommended with queues and **rich-response image caching**). `database` or `file` work if you do not run Redis. |
 | `CACHE_PREFIX` | Optional key prefix when sharing Redis with other apps. |
 
 ### Filesystem
@@ -299,7 +299,7 @@ SQLite (`DB_CONNECTION=sqlite` with `DB_DATABASE` path) is fine for local experi
 
 | Variable | What it does |
 |----------|----------------|
-| `QUEUE_CONNECTION` | Use **`redis`** in production so **Horizon** can run safety alerts, session summaries, and optional Scout indexing. `sync` runs jobs in-process (dev only for heavy jobs). |
+| `QUEUE_CONNECTION` | **`redis`** in **`.env.example`** (same as **Horizon**, session summaries, safety alerts). Without Redis, use **`database`** (`php artisan queue:work`) or **`sync`** (in-process only). |
 | `REDIS_CLIENT` | `predis` (bundled) or `phpredis` if the PHP extension is installed. |
 | `REDIS_HOST` | Usually `127.0.0.1` on a single server. |
 | `REDIS_PASSWORD` | Set when Redis `requirepass` is enabled. |
@@ -342,9 +342,23 @@ Compass View uses **Laravel Echo** in the browser. When `BROADCAST_CONNECTION=re
 | `BROADCAST_CONNECTION` | **`reverb`** enables live Compass updates; **`log`** or **`null`** disables WebSocket broadcasting. |
 | `REVERB_APP_ID` | Application id shared by PHP, the Reverb server, and the browser. |
 | `REVERB_APP_KEY` | Public key used by the browser (paired with secret server-side). |
-| `REVERB_APP_SECRET` | Secret shared by Laravel and the Reverb server; use a long random value in production. |
+| `REVERB_APP_SECRET` | Secret shared by Laravel and the Reverb server; **never deploy** with the sample `change-this-in-production` from `.env.example`. |
 | `REVERB_HOST` / `REVERB_PORT` / `REVERB_SCHEME` | What the **browser** uses to open the WebSocket (`wss` / `https` in production behind TLS). |
 | `REVERB_SERVER_HOST` / `REVERB_SERVER_PORT` | What **`php artisan reverb:start`** binds to (often `0.0.0.0` and `8080`); see `config/reverb.php`. |
+
+#### Generating the Reverb app secret
+
+Laravel Reverb does not ship a `reverb:generate-secret` Artisan command in all versions. Use any long random string, for example:
+
+```bash
+php artisan tinker
+```
+
+```php
+\Illuminate\Support\Str::random(32);
+```
+
+Copy the output (without quotes) into **`REVERB_APP_SECRET`** in `.env`, then restart Reverb. From a shell you can also run **`openssl rand -hex 32`**. Use a **different** secret per environment (staging vs production).
 
 **Vite / frontend (baked in at build time):**
 
@@ -507,7 +521,7 @@ Horizon dashboard: `https://your-host/horizon` — restricted to **`district_adm
 3. Run **Horizon** (or a queue worker) so alert jobs can broadcast after processing.
 4. Rebuild assets after changing **`VITE_*`**: `npm run build`.
 
-**Production:** use **WSS** behind HTTPS, strong `REVERB_APP_SECRET`, and do not expose an unsecured WebSocket port. Channel rules live in **`routes/channels.php`** (teachers subscribe to their own `compass.{userId}` channel).
+**Production:** use **WSS** behind HTTPS, a **unique** `REVERB_APP_SECRET` (not the `.env.example` placeholder—see [Generating the Reverb app secret](#generating-the-reverb-app-secret)), and do not expose an unsecured WebSocket port. Channel rules live in **`routes/channels.php`** (teachers subscribe to their own `compass.{userId}` channel).
 
 ---
 
