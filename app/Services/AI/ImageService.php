@@ -24,7 +24,7 @@ class ImageService
         $cacheKey = self::CACHE_PREFIX.md5(strtolower($keyword));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($keyword, $districtSource) {
-            $source = $districtSource ?? config('atlas.image_source', 'wikimedia');
+            $source = $districtSource ?? config('atlaas.image_source', 'wikimedia');
 
             $result = match ($source) {
                 'unsplash' => $this->fetchUnsplash($keyword),

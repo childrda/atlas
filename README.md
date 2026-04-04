@@ -10,7 +10,7 @@
 [![Inertia.js](https://img.shields.io/badge/Inertia.js-3-9553E9)](https://inertiajs.com/)
 [![Redis](https://img.shields.io/badge/Redis-queues-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![Laravel Horizon](https://img.shields.io/badge/Horizon-queues-405263?logo=laravel&logoColor=white)](https://laravel.com/docs/horizon)
-[![GitHub](https://img.shields.io/badge/GitHub-childrda%2Fatlas-181717?logo=github)](https://github.com/childrda/atlas)
+[![ATLAAS on GitHub](https://img.shields.io/badge/GitHub-ATLAAS-181717?logo=github)](https://github.com/childrda/atlas)
 
 **Augmented Teaching & Learning Assistive AI System**
 
@@ -213,8 +213,8 @@ npm run build
 
 ```bash
 php artisan migrate --force
-# Optional demo data (see [Demo accounts](#demo-accounts-after-seeding)): all seeded test users
-# start with the password `password`. Change those passwords (or skip seeding) before any real use.
+# Seeding: roles, permissions, and toolkit tools always run. Demo logins (known emails/password)
+# run only if SEED_DEMO_ACCOUNTS=true in .env — see [Demo login seeding](#demo-login-seeding).
 php artisan db:seed --force
 php artisan storage:link
 sudo chown -R www-data:www-data /var/www/atlaas/storage /var/www/atlaas/bootstrap/cache
@@ -271,6 +271,14 @@ The canonical list in the repo is **`.env.example`**; this section explains what
 | `DB_USERNAME` / `DB_PASSWORD` | Credentials (use a least-privilege user in production). |
 
 The repo **`.env.example`** defaults to **MySQL** (`DB_DATABASE=atlaas`, user `root`, empty password) so it matches typical XAMPP/WAMP installs—create the `atlaas` database first. **SQLite** (`DB_CONNECTION=sqlite` with an absolute `DB_DATABASE` path) is fine for experimentation; see the commented block in `.env.example`.
+
+### Demo login seeding
+
+| Variable | What it does |
+|----------|----------------|
+| `SEED_DEMO_ACCOUNTS` | **`false`** in **`.env.example`**: `php artisan db:seed` still seeds **roles, permissions, and built-in teacher tools**, but **does not** create `admin@demo.test`, `teacher@demo.test`, or `student@demo.test` with the well-known password. Set **`true`** only on trusted local or staging machines when you want those accounts. Stored in **`config/atlaas.php`** as `seed_demo_accounts`. |
+
+Leave **`false`** on production and shared servers so a mistaken re-seed cannot recreate predictable logins. After changing this value, run **`php artisan config:clear`** (or avoid `config:cache` with a stale value) before seeding.
 
 ### Sessions and cookies
 
@@ -405,7 +413,7 @@ Student chat, toolkit tools, and safety flows call an **OpenAI-compatible** HTTP
 
 ### Student chat: rich responses (images)
 
-The assistant can return structured segments (text, images, SVG diagrams, fun facts, quizzes). Image lookup is configured in **`config/atlas.php`** (`image_source`). Defaults use **Wikimedia** (no API key). Optional stock-photo providers:
+The assistant can return structured segments (text, images, SVG diagrams, fun facts, quizzes). Image lookup is configured in **`config/atlaas.php`** (`image_source`). Defaults use **Wikimedia** (no API key). Optional stock-photo providers:
 
 | Variable | What it does |
 |----------|----------------|
@@ -615,7 +623,7 @@ OPENAI_MODEL=llama3.2
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, secure `APP_KEY` backed up
 - [ ] `APP_URL` matches public HTTPS URL
 - [ ] `php artisan config:cache route:cache view:cache` after deploy
-- [ ] Demo seeders not on production — or [change demo passwords](#how-to-change-passwords-for-the-demo-accounts) immediately after seeding
+- [ ] **`SEED_DEMO_ACCOUNTS=false`** on production (or omit demo users entirely); if you ever seeded demos, [change passwords](#how-to-change-passwords-for-the-demo-accounts) or delete those users
 - [ ] Horizon at `/horizon` only for `district_admin`
 - [ ] Reverb behind TLS / reverse proxy if Compass live mode is on
 - [ ] Meilisearch on a private network with a strong key if used; do not expose 7700 publicly without TLS
@@ -639,13 +647,13 @@ OPENAI_MODEL=llama3.2
 
 ## Demo accounts (after seeding)
 
-If you run **`php artisan db:seed`**, Laravel runs **`DatabaseSeeder`**, which includes **`TestDataSeeder`**. That creates three local-login users for development and demos.
+**`DatabaseSeeder`** always runs **`RolesAndPermissionsSeeder`** and **`BuiltInToolsSeeder`**. It runs **`TestDataSeeder`** (the three demo users below) **only when** **`SEED_DEMO_ACCOUNTS=true`** in `.env` — see [Demo login seeding](#demo-login-seeding). With the default **`false`**, `db:seed` does not create those accounts, so re-seeding cannot restore well-known passwords.
 
-**Security — read this before using seeders**
+**Security — read this before enabling demo users**
 
-- Every seeded test account below is created with the **same default password: `password`**. That is intentional for local development only.
-- **Before** you expose the app to other people, a shared network, or the internet, **change those passwords** (instructions below) **or** do not run `db:seed` on that environment and create real users another way.
-- **Never** rely on default demo credentials on production. The [production checklist](#production-hardening-checklist) assumes you change or remove them.
+- When **`SEED_DEMO_ACCOUNTS=true`**, every demo account below is created with the **same default password: `password`**. That is intentional for local development only.
+- **Before** you expose the app to other people, a shared network, or the internet, **change those passwords** (instructions below), set **`SEED_DEMO_ACCOUNTS=false`**, and/or do not enable demo seeding on that environment.
+- **Never** rely on default demo credentials on production. The [production checklist](#production-hardening-checklist) assumes they are off or changed.
 
 | Email | Default password | Role |
 |-------|------------------|------|
@@ -682,7 +690,7 @@ User::where('email', 'student@demo.test')->update(['password' => Hash::make('dis
 
 Type `exit` to leave Tinker.
 
-**Note:** Running **`php artisan db:seed`** again will **reset** the demo users via `TestDataSeeder` (including their passwords back to `password`). For a lasting change, either stop re-seeding over production data or edit **`database/seeders/TestDataSeeder.php`** to use `Hash::make(env('DEMO_USER_PASSWORD', 'password'))` (or similar) and set secrets only in `.env` — never commit real passwords.
+**Note:** With **`SEED_DEMO_ACCOUNTS=true`**, running **`php artisan db:seed`** again will **reset** the demo users via `TestDataSeeder` (including their passwords back to `password`). With **`false`**, re-seeding does not touch those users. For a lasting change on dev machines, keep **`SEED_DEMO_ACCOUNTS=false`** on shared/production databases, or edit **`database/seeders/TestDataSeeder.php`** to use `Hash::make(env('DEMO_USER_PASSWORD', 'password'))` (or similar) and set secrets only in `.env` — never commit real passwords.
 
 ---
 

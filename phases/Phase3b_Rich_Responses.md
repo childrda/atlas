@@ -1,49 +1,28 @@
 # ATLAAS — Phase 3b: Rich Responses (Images, Diagrams, Fun Facts)
-## Prerequisite: Phase 3 checklist fully passing — Atlas chats in plain text
-## Stop when this works: Atlas shows real photos, SVG diagrams, and fun fact cards alongside text
+## Prerequisite: Phase 3 checklist fully passing — ATLAAS chats in plain text
+## Stop when this works: ATLAAS shows real photos, SVG diagrams, and fun fact cards alongside text
 
 ---
 
 ## What you're building in this phase
-- Four rich content tags Atlas can emit: [IMAGE:], [DIAGRAM:], [FUN_FACT:], [QUIZ:]
-- ResponseParser: splits Atlas's raw output into typed segments
+- Four rich content tags ATLAAS can emit: [IMAGE:], [DIAGRAM:], [FUN_FACT:], [QUIZ:]
+- ResponseParser: splits ATLAAS's raw output into typed segments
 - ImageService: resolves image keywords to real URLs via Wikimedia (default) or district-configured source
 - Redis image cache (24h TTL — Wikimedia requests are free but slow)
 - RichMessage React component: renders each segment type appropriately
-- Updated PromptBuilder: teaches Atlas what tags exist and when to use them
-- Global find-and-replace: "Bridger" → "Atlas" everywhere
+- Updated PromptBuilder: teaches ATLAAS what tags exist and when to use them
 
 ---
 
+**Branding:** This phase assumes the product name **ATLAAS** and UI paths under **`resources/js/Components/Atlaas/`** (e.g. `AtlaasAvatar`). If you still see legacy codenames (**Bridger**, **LearnBridge**, **Atlas** as the assistant name), search the repo and replace them with **ATLAAS** / **Atlaas** as appropriate.
 
-
-Do a project-wide find-and-replace before anything else:
-
-```bash
-# PHP files
-grep -rl "Bridger\|bridger" app/ resources/ database/ --include="*.php" | \
-  xargs sed -i 's/Bridger/Atlas/g; s/bridger/atlas/g'
-
-# TypeScript/React files  
-grep -rl "Bridger\|bridger" resources/js/ --include="*.tsx" --include="*.ts" | \
-  xargs sed -i 's/Bridger/Atlas/g; s/bridger/atlas/g'
-```
-
-Then update the database seeder's `system_prompt`:
-```php
-// In TestDataSeeder — change "You are Bridger" to "You are Atlas"
-'system_prompt' => 'You are Atlas, a friendly science tutor...',
-```
-
-And the `BridgerAvatar` component → rename file and component to `AtlasAvatar`.
-
-Re-run seeds: `php artisan migrate:fresh --seed`
+Ensure **`TestDataSeeder`** (and space `system_prompt` values) say **ATLAAS**, not an older name. Re-run seeds only when appropriate — `php artisan migrate:fresh --seed` is destructive.
 
 ---
 
 ## Step 1 — The four rich tags
 
-These are the only tags Atlas is allowed to emit. The system prompt teaches it
+These are the only tags ATLAAS is allowed to emit. The system prompt teaches it
 exactly when and how to use each one.
 
 | Tag | Example | What happens |
@@ -54,7 +33,7 @@ exactly when and how to use each one.
 | `[QUIZ: question \| optionA \| optionB \| optionC \| answer]` | `[QUIZ: What causes rain? \| Evaporation \| Condensation \| Precipitation \| Precipitation]` | Renders as an interactive mini-quiz |
 
 **Critical rule enforced in the system prompt:**
-Atlas NEVER invents image URLs. It only writes the tag keyword.
+ATLAAS NEVER invents image URLs. It only writes the tag keyword.
 The server resolves keywords to real, safe, licensed images.
 
 ---
@@ -74,7 +53,7 @@ private function identityBlock(string $tone): string
     };
 
     return <<<PROMPT
-You are Atlas, a learning assistant built by this school district to support K-12 students.
+You are ATLAAS, a learning assistant built by this school district to support K-12 students.
 {$toneInstruction}
 
 You can make your responses more engaging by using special display tags.
@@ -293,7 +272,7 @@ use Illuminate\Support\Facades\Log;
 class ImageService
 {
     private const CACHE_TTL  = 86400; // 24 hours
-    private const CACHE_PREFIX = 'atlas_img:';
+    private const CACHE_PREFIX = 'atlaas_img:';
 
     public function resolve(string $keyword, ?string $districtSource = null): ?array
     {
@@ -409,7 +388,7 @@ class ImageService
                 'height'     => $photo['height'],
                 'alt'        => $photo['alt_description'] ?? $keyword,
                 'credit'     => 'Photo by ' . $photo['user']['name'] . ' on Unsplash',
-                'credit_url' => $photo['links']['html'] . '?utm_source=learnbridge&utm_medium=referral',
+                'credit_url' => $photo['links']['html'] . '?utm_source=atlaas&utm_medium=referral',
                 'license'    => 'Unsplash License',
                 'source'     => 'unsplash',
             ];
@@ -817,7 +796,7 @@ onComplete: function (array $segments) {
 
 ## Step 8 — React: RichMessage component
 
-### `resources/js/Components/Atlas/RichMessage.tsx`
+### `resources/js/Components/Atlaas/RichMessage.tsx`
 
 This is the main rendering component. It receives an array of segments and
 renders each one appropriately.
@@ -1057,8 +1036,8 @@ if (data.type === 'done') {
     <div className="flex justify-start">
         <div className="max-w-lg">
             <div className="flex items-start gap-2 mb-1">
-                <AtlasAvatar state="idle" size="sm" />
-                <p className="text-xs text-gray-400 mt-1">Atlas</p>
+                <AtlaasAvatar state="idle" size="sm" />
+                <p className="text-xs text-gray-400 mt-1">ATLAAS</p>
             </div>
             <div className="rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-3">
                 <RichMessage segments={msg.segments} />
@@ -1075,7 +1054,7 @@ if (data.type === 'done') {
 Update the Water Cycle space in `TestDataSeeder` to demonstrate all four tags:
 ```php
 'system_prompt' =>
-    'You are Atlas, a friendly and enthusiastic science tutor for Grade 5 students. ' .
+    'You are ATLAAS, a friendly and enthusiastic science tutor for Grade 5 students. ' .
     'Explain the water cycle using simple language, lots of energy, and real examples. ' .
     'Use images to show what things look like in real life. ' .
     'Use diagrams when explaining sequences or cycles. ' .
@@ -1096,29 +1075,29 @@ php artisan serve
 
 **Checklist:**
 
-Atlas identity:
-- [ ] No mention of "Bridger" anywhere in the UI (check browser, check page source)
-- [ ] Atlas avatar shows in chat header
+ATLAAS identity:
+- [ ] No legacy codenames (Bridger, LearnBridge, Atlas as product name) in the UI (check browser, page source)
+- [ ] ATLAAS avatar shows in chat header
 
 Image tag:
-- [ ] Student types "What does evaporation look like?" → Atlas responds with `[IMAGE: ...]` in raw output
+- [ ] Student types "What does evaporation look like?" → ATLAAS responds with `[IMAGE: ...]` in raw output
 - [ ] A real photo from Wikimedia appears in the chat bubble with attribution
 - [ ] Photo has a credit link in the caption
-- [ ] Check Redis: `php artisan tinker` → `Cache::get('atlas_img:' . md5('water evaporation lake'))` should return image data after first fetch
+- [ ] Check Redis: `php artisan tinker` → `Cache::get('atlaas_img:' . md5('water evaporation lake'))` should return image data after first fetch
 - [ ] If the image keyword finds nothing → the image slot is silently skipped (no broken image)
 - [ ] `onError` on the `<img>` tag hides the figure if the URL is broken
 
 Diagram tag:
-- [ ] Student asks "Can you show me the water cycle steps?" → Atlas responds with `[DIAGRAM: cycle | ...]`
+- [ ] Student asks "Can you show me the water cycle steps?" → ATLAAS responds with `[DIAGRAM: cycle | ...]`
 - [ ] An SVG diagram appears inline in the chat bubble
 - [ ] Diagram has colored nodes and arrows (cycle or steps layout)
 
 Fun fact tag:
-- [ ] Atlas sends a `[FUN_FACT: ...]` during the water cycle lesson
+- [ ] ATLAAS sends a `[FUN_FACT: ...]` during the water cycle lesson
 - [ ] It renders as an amber callout card with "Did you know?" label
 
 Quiz tag:
-- [ ] Atlas sends a `[QUIZ: ...]` after explaining a concept
+- [ ] ATLAAS sends a `[QUIZ: ...]` after explaining a concept
 - [ ] Three answer buttons appear
 - [ ] Clicking the correct answer → green ✓ + "Great job!" message
 - [ ] Clicking wrong → red ✗ + correct answer revealed
@@ -1127,7 +1106,7 @@ Quiz tag:
 Safety + parsing:
 - [ ] Plain text messages still work exactly as before
 - [ ] Safety filter still fires on crisis phrases (images/tags do not bypass it)
-- [ ] ResponseParser enforces max 2 tags per response — test by prompting Atlas to use many tags
+- [ ] ResponseParser enforces max 2 tags per response — test by prompting ATLAAS to use many tags
 
 Teacher view:
 - [ ] Teacher's Compass View still shows the plain text transcript (not segments)
@@ -1140,4 +1119,4 @@ Teacher view:
 The session page now looks like a real interactive learning experience:
 real photos from Wikimedia, color-coded cycle and step diagrams, amber
 "Did you know?" callout cards, and instant-feedback mini quizzes — all
-flowing naturally between Atlas's conversational text.
+flowing naturally between ATLAAS's conversational text.

@@ -1,4 +1,4 @@
-# ATLASS — Phase 3c: Text-to-Speech (Kokoro)
+# ATLAAS — Phase 3c: Text-to-Speech (Kokoro)
 ## Prerequisite: Phase 3b complete — ATLAAS sends rich responses
 ## Stop when this works: Student can click "Speak" on any ATLAAS message and hear it read aloud
 
@@ -355,7 +355,7 @@ not just hidden, absent. No confusing greyed-out buttons students ask about.
 
 ## Step 8 — SpeakButton React component
 
-Create `resources/js/Components/ATLAAS/SpeakButton.tsx`:
+Create `resources/js/Components/Atlaas/SpeakButton.tsx`:
 
 ```tsx
 import { useState, useRef, useEffect } from 'react';
@@ -550,7 +550,7 @@ after the message is fully received (not during streaming):
         <div className="flex justify-start">
             <div className="max-w-lg">
                 <div className="flex items-start gap-2 mb-1">
-                    <ATLAASAvatar state="idle" size="sm" />
+                    <AtlaasAvatar state="idle" size="sm" />
                     <p className="text-xs text-gray-400 mt-1">ATLAAS</p>
                 </div>
                 <div className="rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-3">

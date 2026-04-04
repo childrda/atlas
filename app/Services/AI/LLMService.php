@@ -29,7 +29,7 @@ class LLMService
     {
         $segments = $this->parser->parse($assistantContent);
 
-        return $this->enrichSegments($segments, config('atlas.image_source', 'wikimedia'));
+        return $this->enrichSegments($segments, config('atlaas.image_source', 'wikimedia'));
     }
 
     /**
@@ -102,7 +102,7 @@ class LLMService
         $this->storeMessages($session, $userMessage, $fullResponse, $flag);
 
         $segments = $this->parser->parse($fullResponse);
-        $enriched = $this->enrichSegments($segments, config('atlas.image_source', 'wikimedia'));
+        $enriched = $this->enrichSegments($segments, config('atlaas.image_source', 'wikimedia'));
 
         $onComplete($enriched);
     }

@@ -1,5 +1,10 @@
 <?php
 
+/*
+| Up: rename legacy DB column `bridger_tone` (historic codename) to `atlaas_tone`.
+| Down: restores the original column name for rollback — not a product string; do not “rebrand” it.
+*/
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

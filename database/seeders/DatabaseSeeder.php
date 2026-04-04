@@ -11,10 +11,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
-            RolesAndPermissionsSeeder::class,
-            TestDataSeeder::class,
-            BuiltInToolsSeeder::class,
-        ]);
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        if (config('atlaas.seed_demo_accounts')) {
+            $this->call(TestDataSeeder::class);
+        }
+
+        $this->call(BuiltInToolsSeeder::class);
     }
 }
