@@ -401,7 +401,9 @@ Tag syntax and limits for the model are documented in **`phases/Phase3b_Rich_Res
 
 ### Student chat: text-to-speech (Kokoro)
 
-Optional **Speak** control on each assistant message: Laravel proxies to a self-hosted **[Kokoro](https://github.com/remsky/kokoro-fastapi)** instance (see **`phases/Phase3c_TTS_Kokoro.md`**). Students never call Kokoro directly.
+Optional **Speak** control on each assistant message. **ATLAAS does not bundle speech synthesis:** to use TTS you must **run your own Kokoro server** (or have network access to one your organization already hosts). Typical setups use **[remsky/kokoro-fastapi](https://github.com/remsky/kokoro-fastapi)** — see that repository for images, GPU vs CPU, voices, and health checks. This project’s **`phases/Phase3c_TTS_Kokoro.md`** describes wiring and verification.
+
+Laravel proxies audio requests to Kokoro; **students never call Kokoro directly.** Point **`TTS_KOKORO_URL`** at the base URL of that service (e.g. `http://localhost:8880` when Kokoro runs on the same machine, or `http://kokoro:8880` on a shared Docker network). Leave **`TTS_ENABLED=false`** until Kokoro is available, or the Speak action will fail (the UI degrades when the service is unreachable).
 
 | Variable | What it does |
 |----------|----------------|
@@ -586,7 +588,7 @@ OPENAI_MODEL=llama3.2
 
 **Rich student chat:** Replies may include resolved images and server-generated diagrams when the model follows the line-based tags described in **`phases/Phase3b_Rich_Responses.md`**. Set **`IMAGE_SOURCE`** and optional provider keys [as above](#student-chat-rich-responses-images).
 
-**Speak (TTS):** Optional Kokoro-backed read-aloud is controlled by **`TTS_ENABLED`** and **`TTS_KOKORO_URL`** [as above](#student-chat-text-to-speech-kokoro).
+**Speak (TTS):** Optional read-aloud needs a **[Kokoro FastAPI](https://github.com/remsky/kokoro-fastapi)** server you run or can reach internally; enable with **`TTS_ENABLED`** and **`TTS_KOKORO_URL`** [as above](#student-chat-text-to-speech-kokoro).
 
 ---
 
