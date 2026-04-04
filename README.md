@@ -213,7 +213,9 @@ npm run build
 
 ```bash
 php artisan migrate --force
-php artisan db:seed --force   # optional demo data
+# Optional demo data (see [Demo accounts](#demo-accounts-after-seeding)): all seeded test users
+# start with the password `password`. Change those passwords (or skip seeding) before any real use.
+php artisan db:seed --force
 php artisan storage:link
 sudo chown -R www-data:www-data /var/www/atlaas/storage /var/www/atlaas/bootstrap/cache
 sudo chmod -R ug+rwx /var/www/atlaas/storage /var/www/atlaas/bootstrap/cache
@@ -599,7 +601,7 @@ OPENAI_MODEL=llama3.2
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, secure `APP_KEY` backed up
 - [ ] `APP_URL` matches public HTTPS URL
 - [ ] `php artisan config:cache route:cache view:cache` after deploy
-- [ ] Demo seeders not on production (or change passwords)
+- [ ] Demo seeders not on production — or [change demo passwords](#how-to-change-passwords-for-the-demo-accounts) immediately after seeding
 - [ ] Horizon at `/horizon` only for `district_admin`
 - [ ] Reverb behind TLS / reverse proxy if Compass live mode is on
 - [ ] Meilisearch on a private network with a strong key if used; do not expose 7700 publicly without TLS
@@ -623,15 +625,50 @@ OPENAI_MODEL=llama3.2
 
 ## Demo accounts (after seeding)
 
-After `php artisan db:seed` (includes `TestDataSeeder`):
+If you run **`php artisan db:seed`**, Laravel runs **`DatabaseSeeder`**, which includes **`TestDataSeeder`**. That creates three local-login users for development and demos.
 
-| Email | Password | Role |
-|-------|----------|------|
+**Security — read this before using seeders**
+
+- Every seeded test account below is created with the **same default password: `password`**. That is intentional for local development only.
+- **Before** you expose the app to other people, a shared network, or the internet, **change those passwords** (instructions below) **or** do not run `db:seed` on that environment and create real users another way.
+- **Never** rely on default demo credentials on production. The [production checklist](#production-hardening-checklist) assumes you change or remove them.
+
+| Email | Default password | Role |
+|-------|------------------|------|
 | `teacher@demo.test` | `password` | Teacher |
 | `student@demo.test` | `password` | Student |
 | `admin@demo.test` | `password` | District admin |
 
-**Do not leave these on a public production server.**
+### How to change passwords for the demo accounts
+
+Use **Artisan Tinker** on the server (or your local machine) after seeding. Replace `your-new-strong-password` with a unique, strong secret for each user if you prefer.
+
+```bash
+php artisan tinker
+```
+
+```php
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
+$newPassword = 'your-new-strong-password';
+
+foreach (['admin@demo.test', 'teacher@demo.test', 'student@demo.test'] as $email) {
+    User::where('email', $email)->update(['password' => Hash::make($newPassword)]);
+}
+```
+
+To set **different** passwords per account, run separate updates:
+
+```php
+User::where('email', 'admin@demo.test')->update(['password' => Hash::make('distinct-admin-password')]);
+User::where('email', 'teacher@demo.test')->update(['password' => Hash::make('distinct-teacher-password')]);
+User::where('email', 'student@demo.test')->update(['password' => Hash::make('distinct-student-password')]);
+```
+
+Type `exit` to leave Tinker.
+
+**Note:** Running **`php artisan db:seed`** again will **reset** the demo users via `TestDataSeeder` (including their passwords back to `password`). For a lasting change, either stop re-seeding over production data or edit **`database/seeders/TestDataSeeder.php`** to use `Hash::make(env('DEMO_USER_PASSWORD', 'password'))` (or similar) and set secrets only in `.env` — never commit real passwords.
 
 ---
 
