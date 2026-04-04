@@ -1,3 +1,4 @@
+import { SiteLogo } from '@/Components/Atlaas/SiteLogo';
 import { useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
@@ -21,11 +22,10 @@ export default function Login() {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
             <div className="w-full max-w-sm">
-                <h1 className="text-center text-3xl font-bold tracking-tight text-[#1E3A5F]">ATLAAS</h1>
-                <p className="mt-1 text-center text-xs font-medium uppercase tracking-wider text-[#1E3A5F]/70">
-                    Augmented Teaching &amp; Learning AI System
-                </p>
-                <p className="mt-3 text-center text-sm text-gray-500">Sign in to continue</p>
+                <div className="flex justify-center px-2">
+                    <SiteLogo className="h-auto max-h-28 w-full max-w-xs object-contain" />
+                </div>
+                <p className="mt-4 text-center text-sm text-gray-500">Sign in to continue</p>
 
                 <form onSubmit={submit} className="mt-8 space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     {errors.email && (

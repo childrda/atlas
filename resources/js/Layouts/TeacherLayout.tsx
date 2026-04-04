@@ -1,3 +1,4 @@
+import { SiteLogo } from '@/Components/Atlaas/SiteLogo';
 import { Link, usePage } from '@inertiajs/react';
 import { Activity, Bell, BookOpen, Globe2, LayoutDashboard, Layers, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -74,8 +75,14 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
                 className="flex w-56 shrink-0 flex-col text-white"
                 style={{ backgroundColor: '#1E3A5F' }}
             >
-                <div className="border-b border-white/10 px-4 py-4">
-                    <p className="text-sm font-medium text-white/90">{user.district.name}</p>
+                <div className="border-b border-white/10 px-3 py-3">
+                    <Link href="/teach" className="block">
+                        <SiteLogo
+                            onDark
+                            className="h-9 w-full max-w-[200px] object-contain object-left"
+                        />
+                    </Link>
+                    <p className="mt-3 text-sm font-medium text-white/90">{user.district.name}</p>
                 </div>
                 <nav className="flex flex-1 flex-col gap-0.5 p-3">
                     {nav.map((item) => {
