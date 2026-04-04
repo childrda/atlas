@@ -1,8 +1,16 @@
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import TeacherLayout from '@/Layouts/TeacherLayout';
+import { usePage } from '@inertiajs/react';
+
+interface DashboardStats {
+    active_spaces: number;
+    active_students: number;
+    open_alerts: number;
+}
 
 export default function TeacherDashboard() {
     const user = useCurrentUser();
+    const { stats } = usePage().props as { stats: DashboardStats };
 
     return (
         <TeacherLayout>
@@ -12,9 +20,9 @@ export default function TeacherDashboard() {
 
                 <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
                     {[
-                        { label: 'Active Spaces', value: 0 },
-                        { label: 'Active Students', value: 0 },
-                        { label: 'Open Alerts', value: 0 },
+                        { label: 'Active Spaces', value: stats.active_spaces },
+                        { label: 'Active Students', value: stats.active_students },
+                        { label: 'Open Alerts', value: stats.open_alerts },
                     ].map((stat) => (
                         <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-6">
                             <p className="text-sm text-gray-500">{stat.label}</p>
