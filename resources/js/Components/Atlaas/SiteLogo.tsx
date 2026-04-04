@@ -8,7 +8,7 @@ interface Props {
 export function SiteLogo({ className = '', onDark = false }: Props) {
     const img = (
         <img
-            src="/images/atlaas-logo.png"
+            src="/images/atlaas-logo.svg"
             alt="ATLAAS — Augmented Teaching & Learning Assistive AI System"
             className={className}
         />
