@@ -49,4 +49,11 @@ return [
         'api_key' => env('PEXELS_API_KEY'),
     ],
 
+    'tts' => [
+        'enabled' => env('TTS_ENABLED', false),
+        'url' => env('TTS_KOKORO_URL', 'http://localhost:8880'),
+        'voice' => env('TTS_DEFAULT_VOICE', 'af_heart'),
+        'speed' => (float) env('TTS_DEFAULT_SPEED', 0.9),
+    ],
+
 ];

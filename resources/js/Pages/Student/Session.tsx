@@ -1,5 +1,6 @@
 import { AtlaasAvatar } from '@/Components/Atlaas/AtlaasAvatar';
 import { ChatBubble } from '@/Components/Atlaas/ChatBubble';
+import { SpeakButton } from '@/Components/Atlaas/SpeakButton';
 import { ThinkingIndicator } from '@/Components/Atlaas/ThinkingIndicator';
 import type { Message, MessageSegment, StudentSession } from '@/types/models';
 import { router, usePage } from '@inertiajs/react';
@@ -205,9 +206,18 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
                     <p className="mt-8 text-center text-sm text-gray-400">Say hello to get started!</p>
                 )}
 
-                {messages.map((msg) => (
-                    <ChatBubble key={msg.id} message={msg} />
-                ))}
+                {messages.map((msg) =>
+                    msg.role === 'assistant' ? (
+                        <div key={msg.id} className="flex flex-col gap-1">
+                            <ChatBubble message={msg} />
+                            <div className="flex justify-start pl-1">
+                                <SpeakButton text={msg.content} sessionId={session.id} />
+                            </div>
+                        </div>
+                    ) : (
+                        <ChatBubble key={msg.id} message={msg} />
+                    ),
+                )}
 
                 {isStreaming && streamingContent && (
                     <ChatBubble

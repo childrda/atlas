@@ -399,6 +399,19 @@ The assistant can return structured segments (text, images, SVG diagrams, fun fa
 
 Tag syntax and limits for the model are documented in **`phases/Phase3b_Rich_Responses.md`**.
 
+### Student chat: text-to-speech (Kokoro)
+
+Optional **Speak** control on each assistant message: Laravel proxies to a self-hosted **[Kokoro](https://github.com/remsky/kokoro-fastapi)** instance (see **`phases/Phase3c_TTS_Kokoro.md`**). Students never call Kokoro directly.
+
+| Variable | What it does |
+|----------|----------------|
+| `TTS_ENABLED` | `true` to show Speak and enable `POST /learn/sessions/{id}/speak`. |
+| `TTS_KOKORO_URL` | Base URL (e.g. `http://localhost:8880` dev, `http://kokoro:8880` on Docker network). |
+| `TTS_DEFAULT_VOICE` | Fallback Kokoro voice id (e.g. `af_heart`). |
+| `TTS_DEFAULT_SPEED` | Default speed; voice also follows **`users.preferred_language`** and slows slightly for younger **`grade_level`**. |
+
+A minimal **`docker-compose.yml`** in the repo includes a `kokoro` service for local or server use. Do not expose Kokoro’s port on the public internet.
+
 ### Optional: AWS S3
 
 | Variable | What it does |
@@ -572,6 +585,8 @@ OPENAI_MODEL=llama3.2
 **Local check:** With `APP_ENV=local`, a district admin can use **`/test-llm`**. Remove or protect it in production if exposed.
 
 **Rich student chat:** Replies may include resolved images and server-generated diagrams when the model follows the line-based tags described in **`phases/Phase3b_Rich_Responses.md`**. Set **`IMAGE_SOURCE`** and optional provider keys [as above](#student-chat-rich-responses-images).
+
+**Speak (TTS):** Optional Kokoro-backed read-aloud is controlled by **`TTS_ENABLED`** and **`TTS_KOKORO_URL`** [as above](#student-chat-text-to-speech-kokoro).
 
 ---
 

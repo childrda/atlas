@@ -38,9 +38,16 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        $ttsEnabled = (bool) config('services.tts.enabled', false);
+
         return [
             ...parent::share($request),
             'csrf_token' => csrf_token(),
+            'features' => [
+                'tts' => $ttsEnabled,
+                'ttsVoice' => $ttsEnabled ? config('services.tts.voice') : null,
+                'ttsSpeed' => $ttsEnabled ? config('services.tts.speed') : null,
+            ],
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,

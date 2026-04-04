@@ -7,6 +7,7 @@ use App\Http\Controllers\Student\SessionController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentJoinController;
 use App\Http\Controllers\Student\StudentSpaceController;
+use App\Http\Controllers\Student\TTSController;
 use App\Http\Controllers\Teacher\AlertController;
 use App\Http\Controllers\Teacher\ClassroomController;
 use App\Http\Controllers\Teacher\CompassController;
@@ -87,6 +88,9 @@ Route::middleware(['auth', 'role:student'])
         Route::get('sessions/{session}', [SessionController::class, 'show'])->name('sessions.show');
         Route::post('sessions/{session}/end', [SessionController::class, 'end'])->name('sessions.end');
         Route::post('sessions/{session}/messages', [MessageController::class, 'store'])->name('messages.store');
+        Route::post('sessions/{session}/speak', [TTSController::class, 'speak'])
+            ->middleware('throttle:20,1')
+            ->name('sessions.speak');
     });
 
 Route::get('/', function () {
