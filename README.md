@@ -14,7 +14,7 @@
 
 **Augmented Teaching & Learning Assistive AI System**
 
-ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching and learning: multi-tenant structure (district → school → user), role-based access (district admin, school admin, teacher, student), separate teacher and student portals, the ATLAAS assistive AI in student sessions, queued safety alerts, session summaries, **Compass View** (live teacher dashboard over **Laravel Reverb** WebSockets when enabled), and **Discover** (teacher-shared space library with optional **Meilisearch** via **Laravel Scout**).
+ATLAAS is a Laravel + Inertia (React) application for district-scoped teaching and learning: multi-tenant structure (district → school → user), role-based access (district admin, school admin, teacher, student), separate teacher and student portals, the ATLAAS assistive AI in student sessions (including **rich assistant replies**—images, inline diagrams, fun facts, and short quizzes when the model uses the tagged format), queued safety alerts, session summaries, **Compass View** (live teacher dashboard over **Laravel Reverb** WebSockets when enabled), and **Discover** (teacher-shared space library with optional **Meilisearch** via **Laravel Scout**).
 
 ---
 
@@ -387,6 +387,18 @@ Student chat, toolkit tools, and safety flows call an **OpenAI-compatible** HTTP
 | `OPENAI_ORGANIZATION` / `OPENAI_PROJECT` | Optional OpenAI-specific headers. |
 | `OPENAI_REQUEST_TIMEOUT` | Request timeout in seconds. |
 
+### Student chat: rich responses (images)
+
+The assistant can return structured segments (text, images, SVG diagrams, fun facts, quizzes). Image lookup is configured in **`config/atlas.php`** (`image_source`). Defaults use **Wikimedia** (no API key). Optional stock-photo providers:
+
+| Variable | What it does |
+|----------|----------------|
+| `IMAGE_SOURCE` | `wikimedia` (default), `unsplash`, or `pexels`. |
+| `UNSPLASH_ACCESS_KEY` | Unsplash API key; read as `config('services.unsplash.access_key')`. |
+| `PEXELS_API_KEY` | Pexels API key; read as `config('services.pexels.api_key')`. |
+
+Tag syntax and limits for the model are documented in **`phases/Phase3b_Rich_Responses.md`**.
+
 ### Optional: AWS S3
 
 | Variable | What it does |
@@ -558,6 +570,8 @@ OPENAI_MODEL=llama3.2
 **Anthropic** is not called natively; use an OpenAI-compatible gateway (e.g. LiteLLM) if you need Claude.
 
 **Local check:** With `APP_ENV=local`, a district admin can use **`/test-llm`**. Remove or protect it in production if exposed.
+
+**Rich student chat:** Replies may include resolved images and server-generated diagrams when the model follows the line-based tags described in **`phases/Phase3b_Rich_Responses.md`**. Set **`IMAGE_SOURCE`** and optional provider keys [as above](#student-chat-rich-responses-images).
 
 ---
 

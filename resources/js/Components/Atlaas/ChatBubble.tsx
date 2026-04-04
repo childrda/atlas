@@ -1,3 +1,4 @@
+import { RichMessage } from '@/Components/Atlaas/RichMessage';
 import type { Message } from '@/types/models';
 
 interface Props {
@@ -17,6 +18,12 @@ export function ChatBubble({ message, isStreaming = false }: Props) {
         );
     }
 
+    const assistantRich =
+        message.role === 'assistant' &&
+        !isStreaming &&
+        message.segments &&
+        message.segments.length > 0;
+
     return (
         <div className={`flex ${isStudent ? 'justify-end' : 'justify-start'}`}>
             <div
@@ -26,9 +33,15 @@ export function ChatBubble({ message, isStreaming = false }: Props) {
                         : 'rounded-bl-sm bg-gray-100 text-gray-900'
                 }`}
             >
-                {message.content}
-                {isStreaming && (
-                    <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-gray-500" />
+                {assistantRich ? (
+                    <RichMessage segments={message.segments!} />
+                ) : (
+                    <>
+                        {message.content}
+                        {isStreaming && (
+                            <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-gray-500" />
+                        )}
+                    </>
                 )}
             </div>
         </div>

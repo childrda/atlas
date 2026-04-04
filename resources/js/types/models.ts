@@ -79,11 +79,31 @@ export interface TeacherSpaceSessionRow {
     student?: { id: string; name: string };
 }
 
+/** Resolved image metadata from ATLAAS image providers (Wikimedia, Unsplash, Pexels). */
+export interface ImageResolved {
+    url: string;
+    width?: number;
+    height?: number;
+    alt?: string;
+    credit?: string;
+    credit_url?: string;
+    license?: string;
+    source?: string;
+}
+
+export type MessageSegment =
+    | { type: 'text'; content: string }
+    | { type: 'image'; keyword: string; resolved?: ImageResolved | null }
+    | { type: 'diagram'; diagram_type: string; description: string; svg?: string }
+    | { type: 'fun_fact'; content: string }
+    | { type: 'quiz'; question: string; options: string[]; answer: string };
+
 export interface Message {
     id: string;
     role: 'user' | 'assistant' | 'teacher_inject';
     content: string;
     created_at: string;
+    segments?: MessageSegment[];
 }
 
 export interface StudentSession {

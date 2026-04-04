@@ -15,11 +15,26 @@ class LLMService
         private SafetyFilter $safety,
         private PrivacyFilter $privacy,
         private PromptBuilder $promptBuilder,
+        private ResponseParser $parser,
+        private ImageService $images,
+        private DiagramGenerator $diagrams,
     ) {}
 
     /**
+     * Parse stored assistant text and enrich for display (session reload, etc.).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function parseAndEnrichForDisplay(string $assistantContent): array
+    {
+        $segments = $this->parser->parse($assistantContent);
+
+        return $this->enrichSegments($segments, config('atlas.image_source', 'wikimedia'));
+    }
+
+    /**
      * @param  callable(string): void  $onChunk
-     * @param  callable(): void  $onComplete
+     * @param  callable(list<array<string, mixed>>): void  $onComplete
      */
     public function streamResponse(
         StudentSession $session,
@@ -36,7 +51,7 @@ class LLMService
             ProcessSafetyAlert::dispatch($session, $flag, $userMessage);
 
             $onChunk($safeResponse);
-            $onComplete();
+            $onComplete([['type' => 'text', 'content' => $safeResponse]]);
 
             return;
         }
@@ -86,7 +101,34 @@ class LLMService
 
         $this->storeMessages($session, $userMessage, $fullResponse, $flag);
 
-        $onComplete();
+        $segments = $this->parser->parse($fullResponse);
+        $enriched = $this->enrichSegments($segments, config('atlas.image_source', 'wikimedia'));
+
+        $onComplete($enriched);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     * @return list<array<string, mixed>>
+     */
+    private function enrichSegments(array $segments, ?string $imageSource): array
+    {
+        foreach ($segments as &$segment) {
+            if ($segment['type'] === 'image') {
+                $keyword = (string) ($segment['keyword'] ?? '');
+                $segment['resolved'] = $this->images->resolve($keyword, $imageSource);
+            }
+            if ($segment['type'] === 'diagram') {
+                $svg = $this->diagrams->generate(
+                    (string) ($segment['diagram_type'] ?? 'steps'),
+                    (string) ($segment['description'] ?? '')
+                );
+                $segment['svg'] = $svg;
+            }
+        }
+        unset($segment);
+
+        return $segments;
     }
 
     private function storeMessages(

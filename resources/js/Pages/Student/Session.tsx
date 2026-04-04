@@ -1,7 +1,7 @@
 import { AtlaasAvatar } from '@/Components/Atlaas/AtlaasAvatar';
 import { ChatBubble } from '@/Components/Atlaas/ChatBubble';
 import { ThinkingIndicator } from '@/Components/Atlaas/ThinkingIndicator';
-import type { Message, StudentSession } from '@/types/models';
+import type { Message, MessageSegment, StudentSession } from '@/types/models';
 import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -36,13 +36,14 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, streamingContent]);
 
-    const pushAssistantMessage = (content: string) => {
+    const pushAssistantMessage = (content: string, segments?: MessageSegment[]) => {
         setMessages((prev) => [
             ...prev,
             {
                 id: crypto.randomUUID(),
                 role: 'assistant',
                 content,
+                ...(segments && segments.length > 0 ? { segments } : {}),
                 created_at: new Date().toISOString(),
             },
         ]);
@@ -104,7 +105,7 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
                 const line = rawLine.replace(/\r$/, '').trimEnd();
                 if (!line.startsWith('data: ')) return;
 
-                let data: { type: string; content?: string; message?: string };
+                let data: { type: string; content?: string; message?: string; segments?: MessageSegment[] };
                 try {
                     data = JSON.parse(line.slice(6)) as typeof data;
                 } catch {
@@ -118,7 +119,8 @@ export default function SessionPage({ session, messages: initialMessages }: Prop
 
                 if (data.type === 'done') {
                     sawTerminalEvent = true;
-                    pushAssistantMessage(accumulated);
+                    const segs = Array.isArray(data.segments) ? data.segments : undefined;
+                    pushAssistantMessage(accumulated, segs);
                     accumulated = '';
                     finishStreaming();
                 }

@@ -41,5 +41,12 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
-];
+    'unsplash' => [
+        'access_key' => env('UNSPLASH_ACCESS_KEY'),
+    ],
 
+    'pexels' => [
+        'api_key' => env('PEXELS_API_KEY'),
+    ],
+
+];

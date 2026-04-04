@@ -9,6 +9,7 @@ use App\Http\Controllers\Student\Concerns\AuthorizesStudentLearningSpace;
 use App\Jobs\GenerateSessionSummary;
 use App\Models\LearningSpace;
 use App\Models\StudentSession;
+use App\Services\AI\LLMService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -56,10 +57,25 @@ class SessionController extends Controller
     {
         abort_unless($session->student_id === auth()->id(), 403);
 
-        $messages = $session->messages()
+        $rows = $session->messages()
             ->whereIn('role', ['user', 'assistant', 'teacher_inject'])
             ->orderBy('created_at')
             ->get(['id', 'role', 'content', 'created_at']);
+
+        $llm = app(LLMService::class);
+        $messages = $rows->map(function ($m) use ($llm) {
+            $base = [
+                'id' => $m->id,
+                'role' => $m->role,
+                'content' => $m->content,
+                'created_at' => $m->created_at?->toIso8601String(),
+            ];
+            if ($m->role === 'assistant') {
+                $base['segments'] = $llm->parseAndEnrichForDisplay($m->content);
+            }
+
+            return $base;
+        });
 
         return Inertia::render('Student/Session', [
             'session' => $session->load('space:id,title,description,atlaas_tone,goals,max_messages'),

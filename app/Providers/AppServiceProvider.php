@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Services\AI\DiagramGenerator;
+use App\Services\AI\ImageService;
 use App\Services\AI\LLMService;
+use App\Services\AI\ResponseParser;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -12,6 +15,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(ResponseParser::class);
+        $this->app->singleton(ImageService::class);
+        $this->app->singleton(DiagramGenerator::class);
         $this->app->singleton(LLMService::class);
     }
 

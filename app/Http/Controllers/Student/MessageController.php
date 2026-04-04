@@ -56,8 +56,8 @@ class MessageController extends Controller
                             }
                             flush();
                         },
-                        onComplete: function () {
-                            echo 'data: '.json_encode(['type' => 'done'])."\n\n";
+                        onComplete: function (array $segments) {
+                            echo 'data: '.json_encode(['type' => 'done', 'segments' => $segments])."\n\n";
                             if (ob_get_level() > 0) {
                                 ob_flush();
                             }

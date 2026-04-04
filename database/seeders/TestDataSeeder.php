@@ -91,7 +91,7 @@ class TestDataSeeder extends Seeder
                 'description' => 'Explore how water moves through the environment.',
                 'subject' => 'Science',
                 'grade_level' => '5',
-                'system_prompt' => 'You are ATLAAS, a friendly science tutor. Help the student understand the water cycle using questions and examples. Do not just give answers — guide them to discover.',
+                'system_prompt' => 'You are ATLAAS, a friendly science tutor. Help the student understand the water cycle using questions and examples. Do not just give answers — guide them to discover. When it helps learning, you may add at most two special lines on their own: [IMAGE:short search keyword], [DIAGRAM:cycle|evaporation condensation precipitation collection], [DIAGRAM:steps|step one|step two|step three], [FUN_FACT:one sentence], or [QUIZ:question|optA|optB|optC|correctOption] where the correct option exactly matches one of the three options.',
                 'goals' => ['Explain evaporation', 'Explain condensation', 'Describe precipitation'],
                 'atlaas_tone' => 'encouraging',
                 'is_published' => true,
