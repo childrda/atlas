@@ -14,7 +14,7 @@
 
 ---
 
-**Branding:** This phase assumes the product name **ATLAAS** and UI paths under **`resources/js/Components/Atlaas/`** (e.g. `AtlaasAvatar`). If you still see legacy codenames (**Bridger**, **LearnBridge**, **Atlas** as the assistant name), search the repo and replace them with **ATLAAS** / **Atlaas** as appropriate.
+**Branding:** This phase assumes the product name **ATLAAS** and UI paths under **`resources/js/Components/Atlaas/`** (e.g. `AtlaasAvatar`). If you still see legacy codenames (**Bridger**, **LearnBridge**, or other pre-ATLAAS assistant/product names), search the repo and replace them with **ATLAAS** / **Atlaas** as appropriate.
 
 Ensure **`TestDataSeeder`** (and space `system_prompt` values) say **ATLAAS**, not an older name. Re-run seeds only when appropriate — `php artisan migrate:fresh --seed` is destructive.
 
@@ -1076,7 +1076,7 @@ php artisan serve
 **Checklist:**
 
 ATLAAS identity:
-- [ ] No legacy codenames (Bridger, LearnBridge, Atlas as product name) in the UI (check browser, page source)
+- [ ] No legacy codenames (Bridger, LearnBridge, or non-ATLAAS product names) in the UI (check browser, page source)
 - [ ] ATLAAS avatar shows in chat header
 
 Image tag:

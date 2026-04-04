@@ -10,7 +10,7 @@
 [![Inertia.js](https://img.shields.io/badge/Inertia.js-3-9553E9)](https://inertiajs.com/)
 [![Redis](https://img.shields.io/badge/Redis-queues-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![Laravel Horizon](https://img.shields.io/badge/Horizon-queues-405263?logo=laravel&logoColor=white)](https://laravel.com/docs/horizon)
-[![ATLAAS on GitHub](https://img.shields.io/badge/GitHub-ATLAAS-181717?logo=github)](https://github.com/childrda/atlas)
+[![ATLAAS on GitHub](https://img.shields.io/badge/GitHub-ATLAAS-181717?logo=github)](https://github.com/childrda/atlaas)
 
 **Augmented Teaching & Learning Assistive AI System**
 
